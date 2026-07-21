@@ -1,0 +1,6 @@
+id=geoveil
+name=GeoVeil
+version=0.1.0-dev
+versionCode=100
+author=RetroFrost
+description=Experimental system-wide Android location virtualization through Magisk and Zygisk. Development build: not ready to flash.
