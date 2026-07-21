@@ -6,65 +6,98 @@ on:
     branches: [main]
   push:
     branches: [main]
-    tags: ['v*']
 
 permissions:
   contents: read
 
+env:
+  NDK_VERSION: 27.2.12479018
+  ANDROID_PLATFORM: android-35
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 25
 
     steps:
       - name: Check out source
         uses: actions/checkout@v4
-        with:
-          submodules: recursive
 
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: gradle
+      - name: Run source safety guard
+        shell: bash
+        run: bash scripts/source-guard.sh
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android packages
+      - name: Install NDK and packaging tools
+        shell: bash
         run: |
-          sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+          set -euo pipefail
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "ndk;${NDK_VERSION}"
+          sudo apt-get update
+          sudo apt-get install --yes ninja-build zip
 
-      - name: Make Gradle executable
-        run: chmod +x gradlew
+      - name: Fetch pinned Zygisk API header
+        shell: bash
+        run: bash scripts/fetch-zygisk-header.sh
 
-      - name: Validate forbidden backends
-        run: bash tools/validate-source.sh
-
-      - name: Build manager and native payload
-        run: ./gradlew --no-daemon clean :manager:assembleRelease :zygisk:assembleRelease
-
-      - name: Package Magisk module
-        run: bash tools/package-module.sh
-
-      - name: Validate module
-        run: bash tools/validate-module.sh out/GeoVeil-magisk.zip | tee out/validation.txt
-
-      - name: Create source archive and checksums
+      - name: Compile arm64 Zygisk scaffold
+        shell: bash
         run: |
-          git archive --format=zip --output=out/GeoVeil-source.zip HEAD
-          sha256sum out/GeoVeil-magisk.zip out/GeoVeil-source.zip > out/SHA256SUMS
+          set -euo pipefail
+          NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
+          cmake -S native -B build/native -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build/native --parallel 2
 
-      - name: Upload release artifacts
+      - name: Validate native payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/native/libgeoveil.so
+          file build/native/libgeoveil.so | tee build/native/file.txt
+          readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
+          readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
+          grep -q 'zygisk_module_entry' build/native/symbols.txt
+          ! grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt
+
+      - name: Package development Magisk ZIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf out
+          mkdir -p out/stage/zygisk
+          cp -a module/. out/stage/
+          cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
+          find out/stage -type d -exec chmod 0755 {} +
+          find out/stage -type f -exec chmod 0644 {} +
+          chmod 0755 out/stage/customize.sh out/stage/service.sh out/stage/action.sh
+          (
+            cd out/stage
+            zip -9 -r ../GeoVeil-development.zip .
+          )
+          cd out
+          sha256sum GeoVeil-development.zip > SHA256SUMS
+          unzip -t GeoVeil-development.zip
+          unzip -l GeoVeil-development.zip | tee contents.txt
+          grep -q 'zygisk/arm64-v8a.so' contents.txt
+
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: GeoVeil-${{ github.sha }}
           path: |
-            out/GeoVeil-magisk.zip
-            out/GeoVeil-source.zip
+            out/GeoVeil-development.zip
             out/SHA256SUMS
-            out/validation.txt
-            zygisk/build/intermediates/cmake/release/obj/arm64-v8a/*.so
+            out/contents.txt
+            build/native/file.txt
+            build/native/elf-header.txt
+            build/native/symbols.txt
           if-no-files-found: error
           retention-days: 30
