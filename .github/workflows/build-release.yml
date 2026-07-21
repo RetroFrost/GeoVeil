@@ -1,0 +1,203 @@
+name: Build GeoVeil development release
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Development tag, for example v0.1.0-dev.1
+        required: true
+        default: v0.1.0-dev.1
+        type: string
+      publish_prerelease:
+        description: Publish the ZIP as a GitHub prerelease
+        required: true
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'v*-dev.*'
+      - 'v*-rc.*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: geoveil-release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NDK_VERSION: 27.2.12479018
+  ANDROID_PLATFORM: android-35
+
+jobs:
+  build:
+    name: Build arm64 Magisk ZIP
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Resolve and validate version
+        id: version
+        shell: bash
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            TAG="${GITHUB_REF_NAME}"
+          else
+            TAG="${INPUT_TAG}"
+          fi
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(dev|rc)\.[0-9]+$ ]] || {
+            echo "Unsupported development tag: $TAG" >&2
+            exit 1
+          }
+          VERSION="${TAG#v}"
+          SAFE_TAG="${TAG//\//-}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "archive=GeoVeil-${SAFE_TAG}.zip" >> "$GITHUB_OUTPUT"
+
+      - name: Run source safety guard
+        shell: bash
+        run: bash scripts/source-guard.sh
+
+      - name: Install Android NDK and build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "ndk;${NDK_VERSION}" \
+            "cmake;3.22.1"
+          sudo apt-get update
+          sudo apt-get install --yes ninja-build zip
+
+      - name: Fetch pinned Zygisk API header
+        shell: bash
+        run: bash scripts/fetch-zygisk-header.sh
+
+      - name: Compile arm64 Zygisk library
+        shell: bash
+        run: |
+          set -euo pipefail
+          NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
+          CMAKE="${ANDROID_HOME}/cmake/3.22.1/bin/cmake"
+          "$CMAKE" -S native -B build/native -G Ninja \
+            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+            -DANDROID_ABI=arm64-v8a \
+            -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+            -DANDROID_STL=c++_static \
+            -DCMAKE_BUILD_TYPE=Release
+          "$CMAKE" --build build/native --parallel 2
+
+      - name: Validate native payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/native/libgeoveil.so
+          file build/native/libgeoveil.so | tee build/native/file.txt
+          readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
+          readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
+          grep -q 'zygisk_module_entry' build/native/symbols.txt
+          if grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt; then
+            echo 'Forbidden telephony identifier symbol found' >&2
+            exit 1
+          fi
+
+      - name: Stage Magisk module
+        shell: bash
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          rm -rf dist
+          mkdir -p dist/stage/zygisk
+          cp -a module/. dist/stage/
+          cp build/native/libgeoveil.so dist/stage/zygisk/arm64-v8a.so
+          sed -i "s/^version=.*/version=${VERSION}/" dist/stage/module.prop
+          sed -i "s/^versionCode=.*/versionCode=$((100000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
+          sed -i 's/Development build: not ready to flash./Development scaffold prerelease; central location virtualization is not implemented yet./' dist/stage/module.prop
+          find dist/stage -type d -exec chmod 0755 {} +
+          find dist/stage -type f -exec chmod 0644 {} +
+          chmod 0755 dist/stage/customize.sh dist/stage/service.sh dist/stage/action.sh
+
+      - name: Validate staged module layout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f dist/stage/module.prop
+          test -f dist/stage/customize.sh
+          test -f dist/stage/skip_mount
+          test -s dist/stage/zygisk/arm64-v8a.so
+          for forbidden in system vendor product system_ext system.prop sepolicy.rule post-fs-data.sh hooks_enabled; do
+            test ! -e "dist/stage/$forbidden" || {
+              echo "Forbidden release path: $forbidden" >&2
+              exit 1
+            }
+          done
+          ! grep -RInE 'add-test-provider|set-test-provider-location|setMock\([[:space:]]*true|Settings\.Secure|/efs|/dev/block|force-stop[[:space:]]+com\.android\.shell' dist/stage
+
+      - name: Package ZIP and checksums
+        id: package
+        shell: bash
+        env:
+          ARCHIVE: ${{ steps.version.outputs.archive }}
+        run: |
+          set -euo pipefail
+          (
+            cd dist/stage
+            zip -9 -r "../${ARCHIVE}" .
+          )
+          cd dist
+          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
+          unzip -t "$ARCHIVE"
+          unzip -l "$ARCHIVE" | tee "${ARCHIVE}.contents.txt"
+          grep -q 'zygisk/arm64-v8a.so' "${ARCHIVE}.contents.txt"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: geoveil-${{ steps.version.outputs.tag }}
+          path: |
+            dist/${{ steps.version.outputs.archive }}
+            dist/${{ steps.version.outputs.archive }}.sha256
+            dist/${{ steps.version.outputs.archive }}.contents.txt
+            build/native/file.txt
+            build/native/elf-header.txt
+            build/native/symbols.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub prerelease
+        if: github.ref_type == 'tag' || inputs.publish_prerelease == true
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+          ARCHIVE: ${{ steps.version.outputs.archive }}
+        run: |
+          set -euo pipefail
+          cat > dist/release-notes.md <<'NOTES'
+          ## GeoVeil development scaffold
+
+          This is an automated **development prerelease**, not a functional GeoVeil release.
+
+          - The included arm64 Zygisk library is the no-hook safety scaffold.
+          - Central system-wide location virtualization is not implemented yet.
+          - The parasitic Material 3 manager is not implemented yet.
+          - No test provider, Android location setting, telephony identifier, EFS, modem, or kernel modification is included.
+
+          Do not treat this build as the final module. It exists to verify reproducible compilation, Magisk packaging, ELF exports, source guards, and release automation.
+          NOTES
+          gh release create "$TAG" \
+            "dist/$ARCHIVE" \
+            "dist/${ARCHIVE}.sha256" \
+            "dist/${ARCHIVE}.contents.txt" \
+            --target "$GITHUB_SHA" \
+            --title "GeoVeil $TAG — development scaffold" \
+            --notes-file dist/release-notes.md \
+            --prerelease
