@@ -1,0 +1,70 @@
+name: Build GeoVeil
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android packages
+        run: |
+          sdkmanager 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.2.12479018' 'cmake;3.22.1'
+
+      - name: Make Gradle executable
+        run: chmod +x gradlew
+
+      - name: Validate forbidden backends
+        run: bash tools/validate-source.sh
+
+      - name: Build manager and native payload
+        run: ./gradlew --no-daemon clean :manager:assembleRelease :zygisk:assembleRelease
+
+      - name: Package Magisk module
+        run: bash tools/package-module.sh
+
+      - name: Validate module
+        run: bash tools/validate-module.sh out/GeoVeil-magisk.zip | tee out/validation.txt
+
+      - name: Create source archive and checksums
+        run: |
+          git archive --format=zip --output=out/GeoVeil-source.zip HEAD
+          sha256sum out/GeoVeil-magisk.zip out/GeoVeil-source.zip > out/SHA256SUMS
+
+      - name: Upload release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeoVeil-${{ github.sha }}
+          path: |
+            out/GeoVeil-magisk.zip
+            out/GeoVeil-source.zip
+            out/SHA256SUMS
+            out/validation.txt
+            zygisk/build/intermediates/cmake/release/obj/arm64-v8a/*.so
+          if-no-files-found: error
+          retention-days: 30
