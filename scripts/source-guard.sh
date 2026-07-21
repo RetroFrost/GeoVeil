@@ -11,6 +11,7 @@ fail() {
 
 echo "Checking non-invasive Magisk layout..."
 [[ -f module/skip_mount ]] || fail "module/skip_mount is required"
+[[ -f module/uninstall.sh ]] || fail "module/uninstall.sh is required"
 [[ ! -e module/system ]] || fail "system replacement tree is forbidden"
 [[ ! -e module/vendor ]] || fail "vendor replacement tree is forbidden"
 [[ ! -e module/product ]] || fail "product replacement tree is forbidden"
@@ -44,6 +45,10 @@ patterns=(
   'kill(all)?[[:space:]]+system_server'
   'setprop[[:space:]]+'
   'resetprop[[:space:]]+'
+  'com[/\.]android[/\.]server[/\.]Watchdog'
+  'mHandlerCheckers'
+  'mWaitMaxMillis'
+  'scheduleCheckLocked'
 )
 
 for pattern in "${patterns[@]}"; do
@@ -51,6 +56,12 @@ for pattern in "${patterns[@]}"; do
     fail "forbidden source pattern matched: $pattern"
   fi
 done
+
+echo "Checking cleanup boundaries..."
+! grep -RInE 'force-stop|kill(all)?[[:space:]]+(zygote|zygote64|system_server|com\.android\.shell)' module \
+  || fail "cleanup must never terminate Android framework or shell hosts"
+grep -q 'OLD_CTL.*geoveilctl' module/customize.sh \
+  || fail "installer must attempt legacy GeoVeil restoration before deleting alpha state"
 
 echo "Checking callback scaffold boundaries..."
 grep -q 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
