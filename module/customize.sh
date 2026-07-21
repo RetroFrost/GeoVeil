@@ -27,6 +27,10 @@ ui_print "- Verifying non-invasive module layout"
 [ -e "$MODPATH/sepolicy.rule" ] && abort "! Refusing install: unreviewed sepolicy.rule detected"
 [ -e "$MODPATH/post-fs-data.sh" ] && abort "! Refusing install: early-boot script is forbidden"
 
+if [ -f "$MODPATH/cleanup-legacy.sh" ]; then
+  . "$MODPATH/cleanup-legacy.sh"
+fi
+
 touch "$MODPATH/skip_mount"
 mkdir -p "$MODPATH/logs"
 
@@ -39,8 +43,10 @@ ui_print ""
 ui_print "- Installing permissions"
 set_perm_recursive "$MODPATH" 0 0 0755 0644
 set_perm "$MODPATH/customize.sh" 0 0 0755
+set_perm "$MODPATH/cleanup-legacy.sh" 0 0 0755
 set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755
+[ -f "$MODPATH/uninstall.sh" ] && set_perm "$MODPATH/uninstall.sh" 0 0 0755
 set_perm "$BIN" 0 0 0644
 
 ui_print ""
