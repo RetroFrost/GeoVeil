@@ -1,6 +1,6 @@
 id=geoveil
 name=GeoVeil
-version=0.2.0-rc2-dev-hotfix2
-versionCode=202
+version=0.2.0-rc2-dev-standalone1
+versionCode=203
 author=RetroFrost
-description=Experimental Android 16 Zygisk build with the central system_server location engine, root companion, one-crash fuse, parasitic manager, Easy Location Switch, and joystick. Target-device validation is required.
+description=Experimental Android 16 Zygisk build with the central system_server location engine, root companion, one-crash fuse, standalone manager app, Easy Location Switch, and joystick. Target-device validation is required.

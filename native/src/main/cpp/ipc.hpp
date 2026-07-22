@@ -10,7 +10,7 @@ constexpr uint16_t kIpcVersion = 2;
 enum class ClientRole : uint16_t {
     kUnknown = 0,
     kSystemServer = 1,
-    kShellManager = 2,
+    kManagerApp = 2,
     kTopAppOverlay = 3,
 };
 

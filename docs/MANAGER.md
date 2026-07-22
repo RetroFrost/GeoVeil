@@ -1,29 +1,26 @@
-# GeoVeil RC2 parasitic manager
+# GeoVeil RC2 standalone manager
 
-The parasitic manager is a required RC2 component, not an optional follow-up. RC2 is not considered feature-complete unless the manager can be opened from Magisk's module Action and operate without installing a separate launcher-visible application package.
+The standalone manager is a required RC2 component. It is installed as a normal launcher-visible APK and may be opened from either Android's launcher or Magisk's module Action.
 
 ## Goals
 
 - launch from Magisk: Modules -> GeoVeil -> Action
-- host the manager through the specialized `com.android.shell` process
+- install the manager as `dev.retrofrost.geoveil.manager`
 - present a Material 3 interface with dynamic system colors and dark-mode support
 - keep location virtualization state independent from the manager UI lifecycle
-- restart only `com.android.shell` when explicitly opening the parasitic manager; never restart `system_server` or zygote
-- fail safely: manager bootstrap failure must leave virtualization unchanged and must not destabilize Android
+- never restart Shell, `system_server`, or zygote to open the manager
+- fail safely: an unavailable native bridge must leave virtualization unchanged, keep the APK open, and report pass-through
 
 ## Process boundary
 
 ```text
-Magisk module Action
+Android launcher or Magisk module Action
         |
         v
-small shell bootstrap request
+dev.retrofrost.geoveil.manager process
         |
-        v
-specialized com.android.shell child
-        |
-        +-- load embedded manager DEX/resources after specialization
-        +-- open the manager activity/window
+        +-- open the installed MainActivity
+        +-- register the JNI bridge after Zygisk specialization
         +-- read and write validated state through the companion bridge
         +-- optionally request the foreground joystick overlay
 
@@ -37,11 +34,9 @@ The manager must not contain the location hook itself. Closing or crashing the m
 
 ## Zygisk routing
 
-The native module may retain itself in the shell child only after a minimal pre-specialization UID check. Pre-specialization code must not load DEX, inspect packages, parse configuration, create threads, access files, or perform Java/ART reflection.
+The native module may retain itself in the manager process only after a minimal pre-specialization process-name check. Pre-specialization code must not load DEX, parse configuration, create threads, access files, or perform Java/ART reflection.
 
-All manager bootstrap work occurs after the shell child has specialized. Every unrelated application child unloads the GeoVeil native library.
-
-The implementation must account for the case where `com.android.shell` is denylisted or its Magisk mount namespace is unavailable. Compatibility handling may follow the architectural pattern used by ReLSPosed, but no ReLSPosed source may be copied until GeoVeil's project license and required GPL notices are finalized.
+Native bridge registration occurs after the manager child has specialized. Every unrelated application child unloads the GeoVeil native library unless it is the explicitly scoped foreground joystick target. If the manager is denylisted from Zygisk, the UI must report that the bridge is unavailable.
 
 ## User interface
 
@@ -129,7 +124,7 @@ The manager must expose:
 - disable GeoVeil for the next reboot by creating Magisk's module `disable` marker through the root companion
 - view or export GeoVeil-owned logs without scanning unrelated private application data
 
-The manager must not offer Watchdog modification, Rescue Party suppression, `system_server` restart, zygote restart, cache wipe, or telephony repair actions. The module Action may perform the single Shell-host restart required to create a fresh parasitic-manager process.
+The manager must not offer Watchdog modification, Rescue Party suppression, `system_server` restart, zygote restart, Shell restart, cache wipe, or telephony repair actions.
 
 ## Security and privacy
 
@@ -144,9 +139,9 @@ The manager must not offer Watchdog modification, Rescue Party suppression, `sys
 The manager portion of RC2 is blocked until all of these pass on the target Android 16 build:
 
 - launch from Magisk Action on repeated attempts
-- launch when the shell process is subject to expected Magisk denylist/mount conditions
-- no launcher-visible installed manager package
-- one verified `com.android.shell` restart on explicit manager launch, with no repeated restart loop
+- launch repeatedly from both Android's launcher and Magisk Action
+- report an unavailable bridge without crashing when the module is missing, disabled, or denylisted
+- no Shell, `system_server`, or zygote restart during manager launch
 - manager close/reopen preserves the intended state
 - invalid coordinate input cannot reach the native state snapshot
 - dynamic color, dark mode, filled fields, and inline errors render correctly

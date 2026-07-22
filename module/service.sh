@@ -28,7 +28,7 @@ stage_manager() {
   chown 2000:2000 "$RUNTIME_DIR" "$RUNTIME_DIR/manager.apk" >/dev/null 2>&1 || true
   chmod 0755 "$RUNTIME_DIR"
   chmod 0644 "$RUNTIME_DIR/manager.apk"
-  log "manager and overlay UI payload staged for specialized app processes"
+  log "top-app overlay runtime staged for specialized foreground processes"
 }
 
 enter_emergency() {

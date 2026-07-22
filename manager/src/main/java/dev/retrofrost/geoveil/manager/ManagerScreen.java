@@ -6,6 +6,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.os.SystemClock;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -23,7 +24,7 @@ import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Programmatic Material-3-inspired manager surface hosted by the Shell trampoline activity. */
+/** Programmatic Material-3-inspired surface hosted by the standalone manager activity. */
 final class ManagerScreen extends ScrollView {
     private final Activity activity;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -95,7 +96,7 @@ final class ManagerScreen extends ScrollView {
         root.addView(title);
 
         TextView subtitle = text(
-                "Parasitic manager hosted by Android Shell. The engine stays pass-through unless the native bridge accepts a valid state.",
+                "Standalone manager connected to the GeoVeil Magisk module. The engine stays pass-through unless the native bridge accepts a valid state.",
                 15,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -243,11 +244,16 @@ final class ManagerScreen extends ScrollView {
         setStatus("Manager ready", "Checking whether the RC2 engine bridge is available…", false);
         worker.execute(() -> {
             BridgeClient.Result result = bridge.probe();
+            for (int attempt = 0; attempt < 12 && !result.success; ++attempt) {
+                SystemClock.sleep(250L);
+                result = bridge.probe();
+            }
+            BridgeClient.Result finalResult = result;
             activity.runOnUiThread(() -> {
-                if (result.success) {
+                if (finalResult.success) {
                     setStatus("Engine bridge connected", "Pass-through is active until you enable a valid coordinate.", true);
                 } else {
-                    setStatus("Pass-through mode", result.message, false);
+                    setStatus("Pass-through mode", finalResult.message, false);
                     setEnabledSwitch(false);
                 }
             });

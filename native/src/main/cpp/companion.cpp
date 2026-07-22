@@ -425,13 +425,13 @@ Response handle_message(CompanionState& state, const ClientHello& hello,
             }
             break;
         case Operation::kClearEmergency:
-            if (hello.role == static_cast<uint16_t>(ClientRole::kShellManager)
+            if (hello.role == static_cast<uint16_t>(ClientRole::kManagerApp)
                     && header.payload_size == 0) {
                 return state.clear_emergency();
             }
             break;
         case Operation::kDisableModule:
-            if (hello.role == static_cast<uint16_t>(ClientRole::kShellManager)
+            if (hello.role == static_cast<uint16_t>(ClientRole::kManagerApp)
                     && header.payload_size == 0) {
                 return state.disable_module();
             }

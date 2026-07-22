@@ -33,7 +33,7 @@ env:
 
 jobs:
   build:
-    name: Build arm64 RC2 manager preview
+    name: Build arm64 RC2 with standalone manager
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -80,18 +80,23 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes ninja-build zip
 
-      - name: Build parasitic manager DEX archive
+      - name: Build standalone manager and runtime DEX archive
         shell: bash
         run: |
           set -euo pipefail
           bash manager/build-manager.sh
           test -s manager/build/manager.apk
+          test -s manager/build/GeoVeil-Manager-standalone.apk
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
+          "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" verify --verbose \
+            manager/build/GeoVeil-Manager-standalone.apk
 
-      - name: Fetch pinned Zygisk API header
+      - name: Fetch pinned Zygisk and ART hook sources
         shell: bash
-        run: bash scripts/fetch-zygisk-header.sh
+        run: |
+          bash scripts/fetch-zygisk-header.sh
+          bash scripts/fetch-hook-deps.sh
 
       - name: Compile arm64 Zygisk library
         shell: bash
@@ -131,6 +136,7 @@ jobs:
           mkdir -p dist/stage/zygisk
           cp -a module/. dist/stage/
           cp manager/build/manager.apk dist/stage/manager.apk
+          cp manager/build/manager.apk dist/stage/manager-ui.apk
           cp build/native/libgeoveil.so dist/stage/zygisk/arm64-v8a.so
           sed -i "s/^version=.*/version=${VERSION}/" dist/stage/module.prop
           sed -i "s/^versionCode=.*/versionCode=$((200000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
@@ -150,8 +156,10 @@ jobs:
           test -f dist/stage/customize.sh
           test -f dist/stage/skip_mount
           test -s dist/stage/manager.apk
+          test -s dist/stage/manager-ui.apk
           test -s dist/stage/zygisk/arm64-v8a.so
           unzip -l dist/stage/manager.apk | grep -q 'classes.dex'
+          unzip -l dist/stage/manager-ui.apk | grep -q 'classes.dex'
           for forbidden in system vendor product system_ext system.prop sepolicy.rule post-fs-data.sh hooks_enabled; do
             test ! -e "dist/stage/$forbidden" || {
               echo "Forbidden release path: $forbidden" >&2
@@ -186,8 +194,12 @@ jobs:
             dist/${{ steps.version.outputs.archive }}
             dist/${{ steps.version.outputs.archive }}.sha256
             dist/${{ steps.version.outputs.archive }}.contents.txt
+            manager/build/GeoVeil-Manager-standalone.apk
+            manager/build/GeoVeil-Manager-standalone.apk.sha256
             manager/build/manager.apk
             manager/build/manager.apk.sha256
+            manager/build/standalone-badging.txt
+            manager/build/standalone-certificates.txt
             manager/build/manager-contents.txt
             build/native/file.txt
             build/native/elf-header.txt
@@ -205,18 +217,18 @@ jobs:
         run: |
           set -euo pipefail
           cat > dist/release-notes.md <<'NOTES'
-          ## GeoVeil RC2 manager preview
+          ## GeoVeil RC2 standalone manager preview
 
-          This automated prerelease contains the first source implementation of GeoVeil's parasitic manager:
+          This automated prerelease contains GeoVeil's standalone manager application:
 
-          - a D8-built manager DEX archive loaded only in the specialized `com.android.shell` child;
-          - Magisk Action launch through the Shell bug-report activity;
+          - an installable launcher APK using `dev.retrofrost.geoveil.manager`;
+          - Magisk Action launch through the manager's explicit launcher activity;
           - filled coordinate fields, strict validation, dynamic-color fallbacks, saved drafts, and advanced controls;
           - a bounded background client for the versioned local state bridge;
-          - no separately installed launcher-visible manager package;
+          - a Zygisk-registered local native bridge available only when the matching module is active;
           - no force-stop or restart of Shell, system_server, or zygote.
 
-          **The central system_server location engine and root bridge server are not implemented yet.** When no bridge accepts the state, the manager reports pass-through and does not claim that coordinates changed.
+          The central `system_server` engine and root companion are included, but this build remains unvalidated on the target device. When no bridge accepts the state, the manager reports pass-through and does not claim that coordinates changed.
 
           The Java manager targets API 36. The arm64 native library uses NDK r27's supported native API 35 baseline and is packaged only for the installer-enforced Android 16/API 36 target.
 
@@ -226,6 +238,8 @@ jobs:
             "dist/$ARCHIVE" \
             "dist/${ARCHIVE}.sha256" \
             "dist/${ARCHIVE}.contents.txt" \
+            "manager/build/GeoVeil-Manager-standalone.apk" \
+            "manager/build/GeoVeil-Manager-standalone.apk.sha256" \
             --target "$GITHUB_SHA" \
             --title "GeoVeil $TAG — RC2 manager preview" \
             --notes-file dist/release-notes.md \

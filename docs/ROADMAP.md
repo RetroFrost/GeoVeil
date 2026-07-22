@@ -12,7 +12,7 @@ Planned RC1 completion requirements:
 - source guard and native ELF validation
 - no-hook pass-through payload for `system_server`
 - ordinary app children unload the module
-- shell UID routing reserves a post-specialization bootstrap point without loading manager code
+- standalone manager process routing reserves a post-specialization bridge-registration point
 - safe cleanup of withdrawn Alpha 1 and Alpha 3 state
 - installer cleanup returns to the installer instead of terminating it
 - one-crash fuse for an unfinished hook-install generation
@@ -24,7 +24,7 @@ RC1 is not the working location-virtualization release and does not contain the 
 
 ## RC2 — functional system-wide virtualization and manager
 
-RC2 is the first milestone intended to implement GeoVeil's complete user-facing behavior. The parasitic manager is a required RC2 component, not a later optional add-on.
+RC2 is the first milestone intended to implement GeoVeil's complete user-facing behavior. The standalone manager is a required RC2 component, not a later optional add-on.
 
 ### Central location engine
 
@@ -44,13 +44,13 @@ RC2 is the first milestone intended to implement GeoVeil's complete user-facing 
 - strict latitude and longitude validation, including rejection of empty, malformed, NaN, and infinite values
 - clean state-only enable and disable controls without ART unhooking or process restarts
 
-### Required parasitic manager
+### Required standalone manager
 
-- ReLSPosed-style parasitic Material 3 manager
+- standalone Material-3-inspired Android manager
 - launched from Magisk's GeoVeil module Action
-- hosted through the specialized `com.android.shell` child
-- no separately installed launcher-visible manager package
-- a targeted `com.android.shell` restart is allowed only when explicitly opening the parasitic manager
+- installed as the launcher-visible `dev.retrofrost.geoveil.manager` package
+- native bridge registered after the manager process specializes
+- no Shell, `system_server`, or zygote restart during launch
 - filled Material 3 coordinate fields with inline animated validation
 - Material You dynamic colors, light/dark themes, rounded surfaces, and Material Symbols Outlined
 - remembered coordinates while virtualization remains disabled by default
@@ -59,8 +59,8 @@ RC2 is the first milestone intended to implement GeoVeil's complete user-facing 
 - Easy Location Switch clipboard mode, disabled by default
 - module-disable and emergency-recovery controls through the root companion
 - manager close or crash does not change engine state or block `system_server`
-- manager DEX/resources load only after Shell specialization
-- denylist/mount compatibility behavior reviewed without copying ReLSPosed code before GPL-compatible licensing is finalized
+- manager UI loads normally from the installed APK
+- missing or denylisted module bridge is reported without an application crash
 
 See [`MANAGER.md`](MANAGER.md) for the complete manager process contract, UI behavior, state bridge, recovery controls, and release tests.
 
@@ -98,8 +98,8 @@ RC2 must not be published as working until all of the following are true:
 - every required Android 16 compatibility probe succeeds on the target build
 - hook installation is all-or-nothing
 - hook paths use only bounded, nonblocking state reads
-- the manager opens reliably from Magisk Action without a separate launcher package
-- the manager verifies successful attachment after one bounded `com.android.shell` restart
+- the installed manager opens reliably from both Magisk Action and Android's launcher
+- the manager bridge connects after specialization without restarting a framework process
 - manager close, reopen, and deliberate failure do not destabilize `system_server`
 - invalid input cannot reach the companion's published state snapshot
 - Google Maps and fused-location consumers observe the intended coherent location state

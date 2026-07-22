@@ -31,7 +31,7 @@ echo "Checking non-invasive Magisk layout..."
 [[ ! -e module/post-fs-data.sh ]] || fail "early-boot post-fs-data.sh is forbidden"
 [[ ! -e module/hooks_enabled ]] || fail "virtualization must not be enabled in the package"
 [[ ! -e module/manager.apk ]] || fail "raw manager DEX must be produced by CI, not committed"
-[[ ! -e module/manager-ui.apk ]] || fail "Shell manager archive must be produced by CI, not committed"
+[[ ! -e module/manager-ui.apk ]] || fail "overlay runtime archive must be produced by CI, not committed"
 
 for script in module/customize.sh module/cleanup-legacy.sh module/service.sh module/action.sh; do
   require_file "$script"
@@ -41,8 +41,9 @@ done
 echo "Checking complete RC2 Java source contract..."
 for source in \
   manager/build-manager.sh \
+  manager/src/main/AndroidManifest.xml \
   manager/src/main/java/dev/retrofrost/geoveil/engine/DeliveryHook.java \
-  manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/MainActivity.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/ManagerScreen.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/NativeBridge.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java \
@@ -53,29 +54,33 @@ for source in \
   require_file "$source"
 done
 
-require_text 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
-  "Magisk Action does not carry the GeoVeil launch category"
-require_text 'com.android.shell/.BugreportWarningActivity' module/action.sh \
-  "Shell trampoline component is missing"
+require_text 'MANAGER_PACKAGE=dev.retrofrost.geoveil.manager' module/action.sh \
+  "Magisk Action does not target the standalone manager package"
+require_text 'MANAGER_COMPONENT=$MANAGER_PACKAGE/.MainActivity' module/action.sh \
+  "Magisk Action does not target the standalone launcher activity"
 require_text '-f 0x10000000' module/action.sh \
   "Magisk Action must pass FLAG_ACTIVITY_NEW_TASK using Android 16 intent syntax"
-require_text '/system/bin/am force-stop --user "$USER_ID" com.android.shell' module/action.sh \
-  "parasitic manager launch must restart only its Shell UI host"
-require_text 'READY_MARKER=$RUNTIME_DIR/manager.ready' module/action.sh \
-  "Magisk Action must verify that GeoVeil replaced the Shell activity"
-require_text 'new FileOutputStream(READY_MARKER, false)' \
-  manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java \
-  "manager does not publish its verified attach marker"
+require_text 'android.intent.category.LAUNCHER' module/action.sh \
+  "Magisk Action must launch the installed application"
+require_text 'android.intent.category.LAUNCHER' manager/src/main/AndroidManifest.xml \
+  "standalone manager manifest has no launcher entry"
+require_text 'android:exported="true"' manager/src/main/AndroidManifest.xml \
+  "standalone manager launcher must be exported"
+require_text 'public final class MainActivity extends Activity' \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/MainActivity.java \
+  "standalone manager activity is missing"
+require_text 'GeoVeil-Manager-standalone.apk' manager/build-manager.sh \
+  "manager build does not produce an installable standalone APK"
+require_text 'apksigner' manager/build-manager.sh \
+  "standalone manager APK is not signed"
 if grep -Fq -- '--activity-new-task' module/action.sh; then
   fail "unsupported am start option --activity-new-task is forbidden"
 fi
-if grep -Fq -- 'com.android.shell/.BugreportActivity' module/action.sh; then
-  fail "nonexistent Android 16 Shell fallback activity is forbidden"
+if grep -Fq -- 'com.android.shell' module/action.sh; then
+  fail "standalone manager Action must not launch or restart Android Shell"
 fi
-require_text 'MANAGER_SOURCE=$MODDIR/manager-ui.apk' module/action.sh \
-  "Magisk Action must stage the Shell manager archive, not the raw engine DEX"
 require_text 'MANAGER_UI=$MODDIR/manager-ui.apk' module/service.sh \
-  "late-start service must stage the Shell manager archive separately"
+  "late-start service must stage the top-app overlay archive separately"
 require_text 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
   "sourced legacy cleanup must return to the installer"
 
@@ -109,7 +114,9 @@ require_text '-DANDROID_PLATFORM="${NATIVE_PLATFORM}"' .github/workflows/build.y
 require_text 'manager/build/dex/classes.dex out/stage/manager.apk' .github/workflows/build.yml \
   "system_server must receive a raw DEX, not an APK/ZIP container"
 require_text 'manager/build/manager.apk out/stage/manager-ui.apk' .github/workflows/build.yml \
-  "Shell manager archive is not packaged separately"
+  "top-app overlay archive is not packaged separately"
+require_text 'manager/build/GeoVeil-Manager-standalone.apk' .github/workflows/build.yml \
+  "standalone manager APK is not uploaded by CI"
 
 echo "Checking one-crash fuse and recovery markers..."
 require_text 'GUARD_DIR/emergency_disable' module/service.sh \
@@ -138,6 +145,7 @@ patterns=(
   '/efs([/"[:space:]]|$)'
   '/persist([/"[:space:]]|$)'
   '/dev/block([/"[:space:]]|$)'
+  'force-stop[[:space:]]+com\.android\.shell'
   'kill(all)?[[:space:]]+system_server'
   'kill(all)?[[:space:]]+zygote'
   'setprop[[:space:]]+'
@@ -156,8 +164,11 @@ done
 echo "Checking specialization boundaries..."
 require_text 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
   "unrelated application children must unload"
-require_text 'kAndroidShellUid = 2000' native/src/main/cpp/module.cpp \
-  "Shell routing must use Android's dedicated shell UID"
+require_text 'kManagerPackage[] = "dev.retrofrost.geoveil.manager"' \
+  native/src/main/cpp/module.cpp \
+  "Zygisk routing does not identify the standalone manager package"
+require_text 'ClientRole::kManagerApp' native/src/main/cpp/module.cpp \
+  "standalone manager process does not receive the manager bridge role"
 require_text 'connectCompanion()' native/src/main/cpp/module.cpp \
   "pre-specialization companion connection is missing"
 require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
@@ -165,6 +176,6 @@ require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
 require_text 'postServerSpecialize' native/src/main/cpp/module.cpp \
   "post-specialization system_server engine bootstrap is missing"
 require_text '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \
-  "specialized app bootstrap does not use the staged Shell manager archive"
+  "top-app overlay bootstrap does not use the staged runtime archive"
 
 echo "GeoVeil complete RC2 source guard passed."

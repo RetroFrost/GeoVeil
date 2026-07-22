@@ -2,7 +2,7 @@
 
 GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing Android's framework-visible location state.
 
-> **Status:** the RC2 development source now contains the central `system_server` delivery engine, root companion, lock-free shared state, one-crash fuse, parasitic Shell manager, Easy Location Switch, and foreground joystick. CI builds and packages the implementation successfully. It is still unvalidated on the target device and is not a proven safe release.
+> **Status:** the RC2 development source contains the central `system_server` delivery engine, root companion, lock-free shared state, one-crash fuse, standalone manager app, Easy Location Switch, and foreground joystick. CI builds and packages the implementation successfully. It is still unvalidated on the target device and is not a proven safe release.
 
 ## Current implementation
 
@@ -14,10 +14,10 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 - The root companion validates every state generation and handles static coordinates, walking/jogging movement, joystick deltas, recovery, and module-disable requests.
 - An unfinished hook-install marker causes a replacement `system_server` to enter emergency pass-through rather than installing the hooks again.
 - The Magisk late-start monitor observes the guarded `system_server` PID without killing or restarting any process.
-- The parasitic manager is hosted through `com.android.shell`, launched from the module Action, and is never installed as a launcher-visible package.
+- The manager is a normal launcher-visible APK in `dev.retrofrost.geoveil.manager`; the module Action opens its explicit launcher activity.
 - The manager includes filled coordinate fields, dynamic system colors, validation, remembered drafts, altitude/speed/bearing/accuracy controls, Easy Location Switch, recovery controls, and a movement panel.
 - A movable 360-degree joystick is injected into the foreground top application without requesting Android's system-overlay permission; walking and jogging are mutually exclusive.
-- The module packages raw `classes.dex` for `system_server` separately from the APK/ZIP archive used by the Shell manager.
+- The module packages raw `classes.dex` for `system_server` separately from the runtime archive used by the foreground joystick overlay.
 
 ## Safety boundary
 
@@ -25,12 +25,12 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 - No Android test provider, Developer Options mock app, `Settings.Secure` mock path, or mock-flag override is used.
 - No Watchdog or Rescue Party modification.
 - No telephony, IMEI, EFS, modem, RIL, IMS, SIM, call, SMS, mobile-data, vendor-radio, or block-device access.
-- No framework partition replacement, custom kernel component, or framework/zygote restart. Opening the parasitic manager performs one targeted restart of `com.android.shell` so Zygisk can inject the fresh host process.
+- No framework partition replacement, custom kernel component, Shell force-stop, or framework/zygote restart. Opening the standalone manager launches only its own application process.
 - Hook or compatibility failure is fail-open and restores genuine-location delivery.
 
 ## Validation status
 
-The API 36 manager DEX, arm64 Zygisk library, companion export, source guard, ZIP layout, and checksums build successfully in GitHub Actions. That does **not** prove device behavior. RC2 remains blocked on cold/warm boot tests, deliberate `system_server` failure recovery, manager and joystick cycles, framework/fused-location verification, Google Maps behavior, disable restoration, and calls/SMS/data/SIM/IMEI/connectivity regression testing.
+The API 36 standalone manager APK, runtime DEX, arm64 Zygisk library, companion export, source guard, ZIP layout, and checksums build successfully in GitHub Actions. The APK and module must come from the same build. That does **not** prove device behavior. RC2 remains blocked on cold/warm boot tests, deliberate `system_server` failure recovery, manager and joystick cycles, framework/fused-location verification, Google Maps behavior, disable restoration, and calls/SMS/data/SIM/IMEI/connectivity regression testing.
 
 The optional Wi-Fi and Bluetooth metadata sanitizers described in the roadmap are not included in this location-engine branch; they require separate compatibility probes and may not be added to the release until they can remain completely fail-open and connectivity-neutral.
 

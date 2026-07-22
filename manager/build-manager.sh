@@ -6,16 +6,22 @@ ANDROID_PLATFORM="${ANDROID_PLATFORM:-android-36}"
 BUILD_TOOLS_VERSION="${BUILD_TOOLS_VERSION:-36.0.0}"
 ANDROID_HOME="${ANDROID_HOME:?ANDROID_HOME must point to the Android SDK}"
 ANDROID_JAR="$ANDROID_HOME/platforms/$ANDROID_PLATFORM/android.jar"
-D8="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/d8"
+BUILD_TOOLS="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION"
+D8="$BUILD_TOOLS/d8"
+AAPT2="$BUILD_TOOLS/aapt2"
+ZIPALIGN="$BUILD_TOOLS/zipalign"
+APKSIGNER="$BUILD_TOOLS/apksigner"
+MANIFEST="$ROOT/src/main/AndroidManifest.xml"
+RESOURCES="$ROOT/src/main/res"
+VERSION_NAME="0.2.0-rc2-dev-standalone1"
+VERSION_CODE=203
 
-[[ -f "$ANDROID_JAR" ]] || {
-  echo "Missing Android platform: $ANDROID_JAR" >&2
-  exit 1
-}
-[[ -x "$D8" ]] || {
-  echo "Missing D8: $D8" >&2
-  exit 1
-}
+for required in "$ANDROID_JAR" "$D8" "$AAPT2" "$ZIPALIGN" "$APKSIGNER" "$MANIFEST"; do
+  [[ -e "$required" ]] || {
+    echo "Missing Android build input: $required" >&2
+    exit 1
+  }
+done
 
 rm -rf "$ROOT/build"
 mkdir -p "$ROOT/build/classes" "$ROOT/build/dex"
@@ -25,9 +31,6 @@ find "$ROOT/src/main/java" -name '*.java' -print | sort > "$ROOT/build/sources.l
   exit 1
 }
 
-# Use the JDK's Java 8 standard-library signatures and the API 36 android.jar as
-# the Android class path. Replacing the entire boot class path with android.jar
-# hides LambdaMetafactory from modern javac and prevents lambda compilation.
 javac \
   -encoding UTF-8 \
   --release 8 \
@@ -38,18 +41,74 @@ javac \
 jar --create --file "$ROOT/build/manager-classes.jar" -C "$ROOT/build/classes" .
 "$D8" \
   --lib "$ANDROID_JAR" \
-  --min-api 36 \
+  --min-api 31 \
   --output "$ROOT/build/dex" \
   "$ROOT/build/manager-classes.jar"
 
+# Raw archive retained for system_server engine loading and top-app overlay loading.
 (
   cd "$ROOT/build/dex"
   zip -9 -q "$ROOT/build/manager.apk" classes.dex
 )
 
+"$AAPT2" compile \
+  --dir "$RESOURCES" \
+  -o "$ROOT/build/resources.zip"
+"$AAPT2" link \
+  -o "$ROOT/build/standalone-unsigned-unaligned.apk" \
+  -I "$ANDROID_JAR" \
+  --manifest "$MANIFEST" \
+  --min-sdk-version 31 \
+  --target-sdk-version 36 \
+  --version-code "$VERSION_CODE" \
+  --version-name "$VERSION_NAME" \
+  "$ROOT/build/resources.zip"
+(
+  cd "$ROOT/build/dex"
+  zip -q -0 "$ROOT/build/standalone-unsigned-unaligned.apk" classes.dex
+)
+"$ZIPALIGN" -f -p 4 \
+  "$ROOT/build/standalone-unsigned-unaligned.apk" \
+  "$ROOT/build/standalone-unsigned.apk"
+
+# Development CI produces a self-contained installable APK. The key is ephemeral,
+# is never packaged, and intentionally pairs this development APK with this run.
+KEYSTORE="$ROOT/build/standalone-signing.jks"
+KEY_PASSWORD=geoveil-ci-pair
+keytool -genkeypair \
+  -keystore "$KEYSTORE" \
+  -storepass "$KEY_PASSWORD" \
+  -keypass "$KEY_PASSWORD" \
+  -alias geoveil-manager \
+  -keyalg RSA \
+  -keysize 3072 \
+  -validity 10000 \
+  -dname "CN=GeoVeil Paired Development Build,O=RetroFrost" \
+  -noprompt >/dev/null 2>&1
+"$APKSIGNER" sign \
+  --ks "$KEYSTORE" \
+  --ks-key-alias geoveil-manager \
+  --ks-pass "pass:$KEY_PASSWORD" \
+  --key-pass "pass:$KEY_PASSWORD" \
+  --out "$ROOT/build/GeoVeil-Manager-standalone.apk" \
+  "$ROOT/build/standalone-unsigned.apk"
+
+"$APKSIGNER" verify --verbose --print-certs \
+  "$ROOT/build/GeoVeil-Manager-standalone.apk" \
+  | tee "$ROOT/build/standalone-certificates.txt"
+"$AAPT2" dump badging "$ROOT/build/GeoVeil-Manager-standalone.apk" \
+  | tee "$ROOT/build/standalone-badging.txt"
+grep -q "package: name='dev.retrofrost.geoveil.manager'" \
+  "$ROOT/build/standalone-badging.txt"
+grep -q "launchable-activity: name='dev.retrofrost.geoveil.manager.MainActivity'" \
+  "$ROOT/build/standalone-badging.txt"
+
 unzip -t "$ROOT/build/manager.apk"
 unzip -l "$ROOT/build/manager.apk" | tee "$ROOT/build/manager-contents.txt"
 grep -q 'classes.dex' "$ROOT/build/manager-contents.txt"
 sha256sum "$ROOT/build/manager.apk" > "$ROOT/build/manager.apk.sha256"
+sha256sum "$ROOT/build/GeoVeil-Manager-standalone.apk" \
+  > "$ROOT/build/GeoVeil-Manager-standalone.apk.sha256"
 
 echo "Built $ROOT/build/manager.apk"
+echo "Built $ROOT/build/GeoVeil-Manager-standalone.apk"

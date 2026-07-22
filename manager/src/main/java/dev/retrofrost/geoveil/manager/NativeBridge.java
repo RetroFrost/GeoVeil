@@ -1,8 +1,8 @@
 package dev.retrofrost.geoveil.manager;
 
 /**
- * JNI surface registered by the Zygisk payload after this archive is loaded into a
- * specialized process. No library is loaded from Java and no Android service is used.
+ * JNI surface registered by the Zygisk payload in the specialized manager process.
+ * No library is loaded from Java and no Android service is used.
  */
 final class NativeBridge {
     static final int FLAG_ENABLED = 1;
@@ -47,4 +47,77 @@ final class NativeBridge {
     static native long clearEmergency();
 
     static native long disableModule();
+
+    static long safeProbe() {
+        try {
+            return probe();
+        } catch (LinkageError ignored) {
+            return -6L;
+        }
+    }
+
+    static long safePublish(
+            long generation,
+            int flags,
+            int movementMode,
+            double latitude,
+            double longitude,
+            double altitude,
+            float speed,
+            float bearing,
+            float accuracy) {
+        try {
+            return publish(generation, flags, movementMode, latitude, longitude,
+                    altitude, speed, bearing, accuracy);
+        } catch (LinkageError ignored) {
+            return -6L;
+        }
+    }
+
+    static long safeMove(
+            long generation,
+            float normalizedX,
+            float normalizedY,
+            int movementMode,
+            boolean active,
+            long eventMonotonicNanos) {
+        try {
+            return move(generation, normalizedX, normalizedY, movementMode,
+                    active, eventMonotonicNanos);
+        } catch (LinkageError ignored) {
+            return -6L;
+        }
+    }
+
+    static int safeLastFlags() {
+        try {
+            return lastFlags();
+        } catch (LinkageError ignored) {
+            return 0;
+        }
+    }
+
+    static int safeLastMovementMode() {
+        try {
+            return lastMovementMode();
+        } catch (LinkageError ignored) {
+            return MOVEMENT_NONE;
+        }
+    }
+
+    static long safeClearEmergency() {
+        try {
+            return clearEmergency();
+        } catch (LinkageError ignored) {
+            return -6L;
+        }
+    }
+
+    static long safeDisableModule() {
+        try {
+            return disableModule();
+        } catch (LinkageError ignored) {
+            return -6L;
+        }
+    }
 }

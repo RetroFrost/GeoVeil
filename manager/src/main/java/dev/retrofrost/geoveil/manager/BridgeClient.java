@@ -10,12 +10,12 @@ final class BridgeClient {
             Math.max(1L, SystemClock.elapsedRealtimeNanos()));
 
     Result probe() {
-        return decode(NativeBridge.probe());
+        return decode(NativeBridge.safeProbe());
     }
 
     Result publish(GeoState state) {
-        int currentFlags = NativeBridge.lastFlags();
-        int currentMovement = NativeBridge.lastMovementMode();
+        int currentFlags = NativeBridge.safeLastFlags();
+        int currentMovement = NativeBridge.safeLastMovementMode();
         if (state.movementMode == NativeBridge.MOVEMENT_NONE) {
             state.movementMode = currentMovement == NativeBridge.MOVEMENT_JOGGING
                     ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
@@ -39,7 +39,7 @@ final class BridgeClient {
         if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
 
         long generation = nextGeneration();
-        long result = NativeBridge.publish(
+        long result = NativeBridge.safePublish(
                 generation,
                 flags,
                 state.movementMode,
@@ -53,13 +53,13 @@ final class BridgeClient {
     }
 
     Result publishMovement(GeoState state, boolean enabled, int movementMode) {
-        state.enabled = (NativeBridge.lastFlags() & NativeBridge.FLAG_ENABLED) != 0;
+        state.enabled = (NativeBridge.safeLastFlags() & NativeBridge.FLAG_ENABLED) != 0;
         state.joystickEnabled = enabled;
         state.movementMode = movementMode == NativeBridge.MOVEMENT_JOGGING
                 ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
         GeoState.Validation validation = state.validate();
         if (!validation.valid) {
-            return Result.error(validation.message, NativeBridge.lastFlags());
+            return Result.error(validation.message, NativeBridge.safeLastFlags());
         }
 
         int flags = 0;
@@ -68,7 +68,7 @@ final class BridgeClient {
         if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
         if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
         if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
-        long result = NativeBridge.publish(
+        long result = NativeBridge.safePublish(
                 nextGeneration(), flags, state.movementMode,
                 state.latitude, state.longitude, state.altitude,
                 state.speed, state.bearing, state.accuracy);
@@ -77,7 +77,7 @@ final class BridgeClient {
 
     Result move(float normalizedX, float normalizedY, int movementMode, boolean active) {
         long generation = nextGeneration();
-        long result = NativeBridge.move(
+        long result = NativeBridge.safeMove(
                 generation,
                 normalizedX,
                 normalizedY,
@@ -88,11 +88,11 @@ final class BridgeClient {
     }
 
     Result clearEmergency() {
-        return decode(NativeBridge.clearEmergency());
+        return decode(NativeBridge.safeClearEmergency());
     }
 
     Result disableModule() {
-        return decode(NativeBridge.disableModule());
+        return decode(NativeBridge.safeDisableModule());
     }
 
     private static long nextGeneration() {
@@ -105,7 +105,7 @@ final class BridgeClient {
     }
 
     private static Result decode(long value) {
-        int flags = NativeBridge.lastFlags();
+        int flags = NativeBridge.safeLastFlags();
         if (value >= 0L) return Result.ok(value, flags);
         String message;
         if (value == -2L) {

@@ -1,6 +1,6 @@
 # GeoVeil architecture
 
-GeoVeil uses RC1 for the safety foundation and RC2 for the first functional location engine plus the required parasitic manager. Documentation describes intended behavior; a feature is not working until the corresponding source, CI checks, and target-device tests exist.
+GeoVeil uses RC1 for the safety foundation and RC2 for the first functional location engine plus the standalone manager. Documentation describes intended behavior; a feature is not working until the corresponding source, CI checks, and target-device tests exist.
 
 ## Process model
 
@@ -14,9 +14,9 @@ system_server child
 └── compatibility probe
     └── central location virtualization hooks (only after every probe succeeds)
 
-com.android.shell child
-└── post-specialization parasitic-manager bootstrap only
-    ├── embedded manager DEX/resources
+dev.retrofrost.geoveil.manager child
+└── post-specialization native-bridge registration only
+    ├── installed standalone manager APK
     ├── validated companion state client
     └── optional foreground joystick controller
 
@@ -24,14 +24,14 @@ all other app children
 └── unload GeoVeil immediately unless an explicitly-scoped foreground overlay requires a reviewed future path
 ```
 
-The RC1 native scaffold now reserves the Shell child using only the dedicated shell UID. It still loads no manager DEX/resources and installs no location hooks.
+The native module retains itself for the standalone manager package and explicitly scoped foreground-overlay processes. Unrelated application children unload it immediately.
 
 ## Zygote-safety rules
 
 `onLoad()` and all pre-specialization callbacks must remain tiny and deterministic:
 
 - store framework pointers only
-- at most perform the minimal shell-UID routing comparison
+- at most perform the minimal manager process-name and foreground-role routing comparison
 - no Java/ART method hooks
 - no manager DEX/resource loading
 - no threads
@@ -74,22 +74,22 @@ StateV1
 
 Virtualization starts disabled. Enabling requires a valid latitude in `[-90, 90]` and longitude in `[-180, 180]`. Empty, malformed, NaN, infinite, incomplete, or out-of-range state is rejected before publication.
 
-Disabling changes state only; it never unloads native code, unhooks ART, or restarts `system_server`. Opening the parasitic manager separately restarts only its `com.android.shell` UI host so a fresh Zygisk specialization can occur.
+Disabling changes state only; it never unloads native code, unhooks ART, or restarts `system_server`. Opening the standalone manager launches only its own application process.
 
-## RC2 parasitic manager
+## RC2 standalone manager
 
 The RC2 manager is mandatory and follows the full contract in [`MANAGER.md`](MANAGER.md).
 
 Core properties:
 
 - launched from Magisk's GeoVeil module Action
-- hosted through the specialized `com.android.shell` child
-- no separately installed launcher-visible package
-- manager DEX/resources load only after specialization
+- installed as the launcher-visible `dev.retrofrost.geoveil.manager` package
+- native bridge registration occurs only after the manager process specializes
+- the APK remains usable as a fail-safe status UI when the native bridge is unavailable
 - manager UI writes validated state through the companion bridge
 - no direct synchronous manager-to-`system_server` calls
 - manager close or crash does not change engine state
-- one bounded Shell-host restart when explicitly opening the manager; no `system_server` or zygote restart
+- no Shell, `system_server`, or zygote restart when opening the manager
 - Material 3 filled fields, dynamic color, dark mode, inline validation, and Material Symbols Outlined
 - optional joystick, Easy Location Switch, altitude, speed, bearing, accuracy, and fail-open network-metadata controls
 
