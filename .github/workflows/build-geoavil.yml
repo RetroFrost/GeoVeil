@@ -3,7 +3,7 @@ name: Build GeoAvil APK
 on:
   workflow_dispatch:
   push:
-    branches: [geoavil-actions]
+    branches: [main, geoavil-actions]
 
 permissions:
   contents: read
