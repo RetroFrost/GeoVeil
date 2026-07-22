@@ -262,6 +262,10 @@ int64_t CompanionClient::engine_healthy(uint64_t generation) {
     return transact(Operation::kEngineHealthy, generation, nullptr, 0);
 }
 
+int64_t CompanionClient::engine_abort(uint64_t generation) {
+    return transact(Operation::kEngineAbort, generation, nullptr, 0);
+}
+
 int64_t CompanionClient::clear_emergency() {
     return transact(Operation::kClearEmergency, 0, nullptr, 0);
 }
