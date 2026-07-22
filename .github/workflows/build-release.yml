@@ -1,12 +1,12 @@
-name: Build GeoVeil development release
+name: Build GeoVeil RC2 development release
 
 on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Development tag, for example v0.1.0-dev.1
+        description: Development tag, for example v0.2.0-rc.2
         required: true
-        default: v0.1.0-dev.1
+        default: v0.2.0-rc.2
         type: string
       publish_prerelease:
         description: Publish the ZIP as a GitHub prerelease
@@ -27,13 +27,14 @@ concurrency:
 
 env:
   NDK_VERSION: 27.2.12479018
-  ANDROID_PLATFORM: android-35
+  ANDROID_PLATFORM: android-36
+  BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
   build:
-    name: Build arm64 Magisk ZIP
+    name: Build arm64 RC2 manager preview
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Check out source
@@ -65,16 +66,27 @@ jobs:
         shell: bash
         run: bash scripts/source-guard.sh
 
-      - name: Install Android NDK and build tools
+      - name: Install Android API 36, NDK, and build tools
         shell: bash
         run: |
           set -euo pipefail
           yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
           "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
+            "platforms;${ANDROID_PLATFORM}" \
+            "build-tools;${BUILD_TOOLS_VERSION}" \
             "ndk;${NDK_VERSION}" \
             "cmake;3.22.1"
           sudo apt-get update
           sudo apt-get install --yes ninja-build zip
+
+      - name: Build parasitic manager DEX archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash manager/build-manager.sh
+          test -s manager/build/manager.apk
+          unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
+          grep -q 'classes.dex' manager/build/verified-contents.txt
 
       - name: Fetch pinned Zygisk API header
         shell: bash
@@ -117,13 +129,17 @@ jobs:
           rm -rf dist
           mkdir -p dist/stage/zygisk
           cp -a module/. dist/stage/
+          cp manager/build/manager.apk dist/stage/manager.apk
           cp build/native/libgeoveil.so dist/stage/zygisk/arm64-v8a.so
           sed -i "s/^version=.*/version=${VERSION}/" dist/stage/module.prop
-          sed -i "s/^versionCode=.*/versionCode=$((100000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
-          sed -i 's/Development build: not ready to flash./Development scaffold prerelease; central location virtualization is not implemented yet./' dist/stage/module.prop
+          sed -i "s/^versionCode=.*/versionCode=$((200000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
           find dist/stage -type d -exec chmod 0755 {} +
           find dist/stage -type f -exec chmod 0644 {} +
-          chmod 0755 dist/stage/customize.sh dist/stage/service.sh dist/stage/action.sh
+          chmod 0755 \
+            dist/stage/customize.sh \
+            dist/stage/cleanup-legacy.sh \
+            dist/stage/service.sh \
+            dist/stage/action.sh
 
       - name: Validate staged module layout
         shell: bash
@@ -132,7 +148,9 @@ jobs:
           test -f dist/stage/module.prop
           test -f dist/stage/customize.sh
           test -f dist/stage/skip_mount
+          test -s dist/stage/manager.apk
           test -s dist/stage/zygisk/arm64-v8a.so
+          unzip -l dist/stage/manager.apk | grep -q 'classes.dex'
           for forbidden in system vendor product system_ext system.prop sepolicy.rule post-fs-data.sh hooks_enabled; do
             test ! -e "dist/stage/$forbidden" || {
               echo "Forbidden release path: $forbidden" >&2
@@ -157,6 +175,7 @@ jobs:
           unzip -t "$ARCHIVE"
           unzip -l "$ARCHIVE" | tee "${ARCHIVE}.contents.txt"
           grep -q 'zygisk/arm64-v8a.so' "${ARCHIVE}.contents.txt"
+          grep -q 'manager.apk' "${ARCHIVE}.contents.txt"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
@@ -166,6 +185,9 @@ jobs:
             dist/${{ steps.version.outputs.archive }}
             dist/${{ steps.version.outputs.archive }}.sha256
             dist/${{ steps.version.outputs.archive }}.contents.txt
+            manager/build/manager.apk
+            manager/build/manager.apk.sha256
+            manager/build/manager-contents.txt
             build/native/file.txt
             build/native/elf-header.txt
             build/native/symbols.txt
@@ -182,22 +204,26 @@ jobs:
         run: |
           set -euo pipefail
           cat > dist/release-notes.md <<'NOTES'
-          ## GeoVeil development scaffold
+          ## GeoVeil RC2 manager preview
 
-          This is an automated **development prerelease**, not a functional GeoVeil release.
+          This automated prerelease contains the first source implementation of GeoVeil's parasitic manager:
 
-          - The included arm64 Zygisk library is the no-hook safety scaffold.
-          - Central system-wide location virtualization is not implemented yet.
-          - The parasitic Material 3 manager is not implemented yet.
-          - No test provider, Android location setting, telephony identifier, EFS, modem, or kernel modification is included.
+          - a D8-built manager DEX archive loaded only in the specialized `com.android.shell` child;
+          - Magisk Action launch through the Shell bug-report activity;
+          - filled coordinate fields, strict validation, dynamic-color fallbacks, saved drafts, and advanced controls;
+          - a bounded background client for the versioned local state bridge;
+          - no separately installed launcher-visible manager package;
+          - no force-stop or restart of Shell, system_server, or zygote.
 
-          Do not treat this build as the final module. It exists to verify reproducible compilation, Magisk packaging, ELF exports, source guards, and release automation.
+          **The central system_server location engine and root bridge server are not implemented yet.** When no bridge accepts the state, the manager reports pass-through and does not claim that coordinates changed.
+
+          No test provider, Android mock-location setting, Watchdog modification, telephony identifier, EFS, modem, partition, or custom-kernel modification is included. This build must be device-tested before it is described as working.
           NOTES
           gh release create "$TAG" \
             "dist/$ARCHIVE" \
             "dist/${ARCHIVE}.sha256" \
             "dist/${ARCHIVE}.contents.txt" \
             --target "$GITHUB_SHA" \
-            --title "GeoVeil $TAG — development scaffold" \
+            --title "GeoVeil $TAG — RC2 manager preview" \
             --notes-file dist/release-notes.md \
             --prerelease
