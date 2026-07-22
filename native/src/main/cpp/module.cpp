@@ -4,6 +4,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <cstring>
 #include <pthread.h>
 #include <time.h>
 
@@ -16,6 +17,7 @@ namespace geoveil {
 namespace {
 
 constexpr jint kFirstApplicationUid = 10000;
+constexpr char kStandaloneManagerProcess[] = "dev.retrofrost.geoveil.manager";
 constexpr char kManagerArchive[] = "/data/local/tmp/geoveil/manager.apk";
 constexpr char kOverlayEntryClass[] = "dev.retrofrost.geoveil.manager.OverlayEntry";
 constexpr useconds_t kBootstrapDelayMicros = 250000;
@@ -34,6 +36,18 @@ bool clear_exception(JNIEnv* env) {
     if (env == nullptr || !env->ExceptionCheck()) return false;
     env->ExceptionClear();
     return true;
+}
+
+bool is_standalone_manager(JNIEnv* env, jstring nice_name) {
+    if (env == nullptr || nice_name == nullptr) return false;
+    const char* value = env->GetStringUTFChars(nice_name, nullptr);
+    if (value == nullptr) {
+        clear_exception(env);
+        return false;
+    }
+    const bool matches = std::strcmp(value, kStandaloneManagerProcess) == 0;
+    env->ReleaseStringUTFChars(nice_name, value);
+    return matches;
 }
 
 jobject current_application(JNIEnv* env) {
@@ -91,14 +105,21 @@ class GeoVeilModule final : public zygisk::ModuleBase {
 public:
     void onLoad(zygisk::Api* api, JNIEnv* env) override {
         api_ = api;
+        env_ = env;
         if (env != nullptr) (void)env->GetJavaVM(&vm_);
     }
 
     void preAppSpecialize(zygisk::AppSpecializeArgs* args) override {
         uid_ = args != nullptr ? args->uid : -1;
+        is_standalone_manager_ = args != nullptr
+                && is_standalone_manager(env_, args->nice_name);
         is_top_app_child_ = args != nullptr && uid_ >= kFirstApplicationUid
                 && args->is_top_app != nullptr && *args->is_top_app == JNI_TRUE;
-        if (!is_top_app_child_) {
+        // A launcher process can be forked before ActivityTaskManager has marked it
+        // as top.  The standalone manager still needs a live companion socket so
+        // its root helper can address the same module state.  Do not load the
+        // overlay into that process; it already hosts the real standalone APK.
+        if (!is_top_app_child_ && !is_standalone_manager_) {
             if (api_ != nullptr) api_->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
             return;
         }
@@ -109,6 +130,17 @@ public:
     }
 
     void postAppSpecialize(const zygisk::AppSpecializeArgs*) override {
+        if (is_standalone_manager_) {
+            if (companion_socket_ < 0 || bootstrap_started_.exchange(true)) return;
+            pthread_t thread{};
+            if (pthread_create(&thread, nullptr, &GeoVeilModule::manager_companion_thread,
+                    this) == 0) {
+                pthread_detach(thread);
+            } else {
+                bootstrap_started_.store(false);
+            }
+            return;
+        }
         if (!is_top_app_child_ || vm_ == nullptr
                 || companion_socket_ < 0 || bootstrap_started_.exchange(true)) {
             return;
@@ -154,6 +186,11 @@ private:
         return nullptr;
     }
 
+    static void* manager_companion_thread(void* opaque) {
+        static_cast<GeoVeilModule*>(opaque)->run_manager_companion();
+        return nullptr;
+    }
+
     static void* engine_bootstrap_thread(void* opaque) {
         static_cast<GeoVeilModule*>(opaque)->run_engine_bootstrap();
         return nullptr;
@@ -182,6 +219,15 @@ private:
             usleep(kBootstrapDelayMicros);
         }
         vm_->DetachCurrentThread();
+    }
+
+    void run_manager_companion() {
+        companion_.adopt_socket(companion_socket_);
+        companion_socket_ = -1;
+        // Keep the authenticated socket open for this process lifetime.  The
+        // companion's independent control watcher accepts geoveilctl requests;
+        // this process does not register JNI natives or inject a second UI.
+        (void)companion_.handshake(ClientRole::kManagerApp, getpid(), uid_, nullptr, nullptr);
     }
 
     bool install_app_entry(JNIEnv* env, const char* entry_name) {
@@ -267,12 +313,14 @@ private:
     }
 
     zygisk::Api* api_ = nullptr;
+    JNIEnv* env_ = nullptr;
     JavaVM* vm_ = nullptr;
     CompanionClient companion_;
     ClientRole process_role_ = ClientRole::kUnknown;
     jint uid_ = -1;
     int companion_socket_ = -1;
     bool is_top_app_child_ = false;
+    bool is_standalone_manager_ = false;
     const SharedStateV2* shared_state_ = nullptr;
     uint64_t engine_generation_ = 0;
     std::atomic<bool> bootstrap_started_{false};

@@ -186,9 +186,10 @@ done
 echo "Checking specialization boundaries..."
 require_text 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
   "unrelated application children must unload"
-if grep -Fq -- 'kManagerPackage' native/src/main/cpp/module.cpp; then
-  fail "standalone manager must use root control, not Zygisk APK injection"
-fi
+require_text 'kStandaloneManagerProcess' native/src/main/cpp/module.cpp \
+  "standalone manager must retain a companion connection during launcher startup"
+require_text 'run_manager_companion' native/src/main/cpp/module.cpp \
+  "standalone manager does not establish the root companion channel"
 require_text 'connectCompanion()' native/src/main/cpp/module.cpp \
   "pre-specialization companion connection is missing"
 require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
