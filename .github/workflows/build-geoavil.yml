@@ -6,12 +6,13 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     steps:
       - name: Checkout patch repo
         uses: actions/checkout@v4
@@ -42,6 +43,16 @@ jobs:
           chmod +x ./gradlew
           ./gradlew :app:assembleDebug --stacktrace --info 2>&1 | tee ../build-output.log
 
+      - name: Publish direct APK file
+        if: success()
+        run: |
+          cp geoavil/app/build/outputs/apk/debug/*.apk GeoAvil-patched-app.apk
+          git config user.name "GeoAvil Builder"
+          git config user.email "actions@github.com"
+          git add GeoAvil-patched-app.apk build-output.log
+          git commit -m "Publish patched GeoAvil APK [skip ci]"
+          git push
+
       - name: Upload build log
         if: always()
         uses: actions/upload-artifact@v4
@@ -56,6 +67,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GeoAvil-mock-status-tester
-          path: geoavil/app/build/outputs/apk/debug/*.apk
+          path: GeoAvil-patched-app.apk
           if-no-files-found: error
           retention-days: 30
