@@ -3,10 +3,12 @@ project(geoveil LANGUAGES CXX)
 
 add_library(geoveil SHARED
     src/main/cpp/module.cpp
+    src/main/cpp/state_bridge.cpp
 )
 
 target_include_directories(geoveil PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/zygisk
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp
 )
 
 target_compile_features(geoveil PRIVATE cxx_std_20)
