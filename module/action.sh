@@ -4,7 +4,7 @@ MODDIR=${0%/*}
 STATE_DIR=/data/adb/geoveil
 RUNTIME_DIR=/data/local/tmp/geoveil
 LOG_FILE=$STATE_DIR/geoveil.log
-MANAGER_SOURCE=$MODDIR/manager.apk
+MANAGER_SOURCE=$MODDIR/manager-ui.apk
 MANAGER_RUNTIME=$RUNTIME_DIR/manager.apk
 LAUNCH_CATEGORY=dev.retrofrost.geoveil.LAUNCH_MANAGER
 
@@ -12,15 +12,15 @@ mkdir -p "$STATE_DIR" "$RUNTIME_DIR"
 printf '%s Magisk Action requested\n' "$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo unknown-time)" >> "$LOG_FILE"
 
 if [ ! -s "$MANAGER_SOURCE" ]; then
-  echo "GeoVeil manager payload is missing from this build."
+  echo "GeoVeil manager UI payload is missing from this build."
   echo "The module remains in pass-through mode."
   exit 1
 fi
 
-# The shell child reads only this copied manager DEX archive. Nothing is installed
-# into PackageManager and no launcher-visible package is created.
+# The Shell child reads the copied APK archive. PackageManager never installs it;
+# manager.apk in the module root is reserved for raw DEX consumed by system_server.
 cp -f "$MANAGER_SOURCE" "$MANAGER_RUNTIME" || {
-  echo "Could not stage the GeoVeil manager payload."
+  echo "Could not stage the GeoVeil manager UI payload."
   exit 1
 }
 chown 2000:2000 "$RUNTIME_DIR" "$MANAGER_RUNTIME" >/dev/null 2>&1 || true
