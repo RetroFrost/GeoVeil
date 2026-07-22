@@ -28,18 +28,31 @@ struct StateSnapshot {
 enum class CompanionRole : std::uint8_t {
     kShellBootstrap = 1,
     kSystemServerState = 2,
+    kSystemServerControl = 3,
+};
+
+enum class GuardAction : std::uint16_t {
+    kArmBeforeCommit = 1,
+    kCommitSucceeded = 2,
+    kMarkHealthy = 3,
+    kDisarm = 4,
 };
 
 // Opens a Zygisk companion request while the caller is still in a
 // pre-specialization callback. Shell bootstrap requests only ensure the root
 // manager socket exists and are closed immediately. System-server requests
-// return a retained state-stream descriptor, or -1 on failure.
+// return retained state/control descriptors, or -1 on failure.
 int open_companion_channel(zygisk::Api* api, CompanionRole role);
 
 // Starts the post-specialization system_server reader. All blocking socket work
 // stays on its detached background thread; future hook paths only call
 // read_state_snapshot().
 void start_system_server_state_reader(int fd);
+
+// Sends a bounded control record to the root companion. Future active hook code
+// must arm before commit, report commit success, and mark healthy only after the
+// observation window. The current pass-through build never arms the fuse.
+bool send_guard_action(int fd, GuardAction action, std::uint64_t generation);
 
 // Bounded lock-free snapshot read for the future location delivery hook.
 bool read_state_snapshot(StateSnapshot* out);
