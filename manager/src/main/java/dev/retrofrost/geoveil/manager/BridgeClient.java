@@ -14,9 +14,21 @@ final class BridgeClient {
     }
 
     Result publish(GeoState state) {
+        int currentFlags = NativeBridge.lastFlags();
+        int currentMovement = NativeBridge.lastMovementMode();
+        if (state.movementMode == NativeBridge.MOVEMENT_NONE) {
+            state.movementMode = currentMovement == NativeBridge.MOVEMENT_JOGGING
+                    ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
+        }
+        // The main coordinate form does not own the overlay controls. Preserve the
+        // current companion state unless the movement panel explicitly changes it.
+        if ((currentFlags & NativeBridge.FLAG_JOYSTICK_ENABLED) != 0) {
+            state.joystickEnabled = true;
+        }
+
         GeoState.Validation validation = state.validate();
         if (!validation.valid) {
-            return Result.error(validation.message, NativeBridge.lastFlags());
+            return Result.error(validation.message, currentFlags);
         }
 
         int flags = 0;
@@ -37,6 +49,29 @@ final class BridgeClient {
                 state.speed,
                 state.bearing,
                 state.accuracy);
+        return decode(result);
+    }
+
+    Result publishMovement(GeoState state, boolean enabled, int movementMode) {
+        state.enabled = (NativeBridge.lastFlags() & NativeBridge.FLAG_ENABLED) != 0;
+        state.joystickEnabled = enabled;
+        state.movementMode = movementMode == NativeBridge.MOVEMENT_JOGGING
+                ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
+        GeoState.Validation validation = state.validate();
+        if (!validation.valid) {
+            return Result.error(validation.message, NativeBridge.lastFlags());
+        }
+
+        int flags = 0;
+        if (state.enabled) flags |= NativeBridge.FLAG_ENABLED;
+        if (state.hasCoordinates) flags |= NativeBridge.FLAG_HAS_COORDINATES;
+        if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
+        if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
+        if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
+        long result = NativeBridge.publish(
+                nextGeneration(), flags, state.movementMode,
+                state.latitude, state.longitude, state.altitude,
+                state.speed, state.bearing, state.accuracy);
         return decode(result);
     }
 
@@ -65,17 +100,13 @@ final class BridgeClient {
             long current = GENERATION.get();
             long clock = Math.max(1L, SystemClock.elapsedRealtimeNanos());
             long next = Math.max(current + 1L, clock);
-            if (GENERATION.compareAndSet(current, next)) {
-                return next;
-            }
+            if (GENERATION.compareAndSet(current, next)) return next;
         }
     }
 
     private static Result decode(long value) {
         int flags = NativeBridge.lastFlags();
-        if (value >= 0L) {
-            return Result.ok(value, flags);
-        }
+        if (value >= 0L) return Result.ok(value, flags);
         String message;
         if (value == -2L) {
             message = "Engine bridge schema is incompatible with this manager.";
