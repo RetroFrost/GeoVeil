@@ -2,7 +2,7 @@
 
 GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing Android's framework-visible location state.
 
-> **Status:** early development. There is no safe flashable release yet. Do not package or flash the repository until the release checklist is complete.
+> **Status:** early development. RC1 is the safety and packaging foundation; RC2 is the first planned functional virtualization milestone. There is no safe working release yet.
 
 ## Frozen design
 
@@ -13,12 +13,19 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 - Optional **Easy Location Switch** clipboard watcher, disabled by default.
 - Optional movable analog control with mutually exclusive walking/jogging modes.
 - Spoofing disabled by default; first use requires valid coordinates.
-- No Android mock-location setting, test provider, `Settings.Secure` write, framework replacement, or custom-kernel component.
+- No Android mock-location setting, test provider, `Settings.Secure` write, framework replacement, Watchdog modification, or custom-kernel component.
 - No telephony, IMEI, EFS, modem, RIL, IMS, SIM, calls, SMS, or mobile-data hooks.
+
+## Release plan
+
+- **RC1:** no-hook safety scaffold, reproducible packaging, legacy cleanup, source guards, API-target alignment, recovery paths, and the one-crash fuse.
+- **RC2:** global location virtualization, Android 16 compatibility probes, atomic hooks, companion IPC, lock-free state, manager, joystick, movement modes, controls, fused-location verification, and optional fail-open Wi-Fi/Bluetooth metadata sanitization.
+
+See [`docs/ROADMAP.md`](docs/ROADMAP.md) for the complete RC1/RC2 scope and release blockers.
 
 ## Stability policy
 
-GeoVeil must fail open: when a compatibility probe or hook fails, Android's genuine location passes through unchanged. The project will not publish a release until repeated reboot, `system_server` restart, manager launch, enable/disable, and recovery tests pass on the target Android build.
+GeoVeil must fail open: when a compatibility probe or hook fails, Android's genuine location passes through unchanged. The project will not publish a functional release until repeated reboot, `system_server` restart, manager launch, enable/disable, movement, connectivity, and recovery tests pass on the target Android build.
 
 ## Target
 
