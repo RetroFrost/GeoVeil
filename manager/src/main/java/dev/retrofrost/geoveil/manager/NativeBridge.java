@@ -1,123 +1,12 @@
 package dev.retrofrost.geoveil.manager;
 
-/**
- * JNI surface registered only in specialized foreground-overlay processes.
- * The standalone manager uses RootBridge instead of this injected transport.
- */
+/** Compatibility constants retained for the manager model; there is no native bridge. */
 final class NativeBridge {
     static final int FLAG_ENABLED = 1;
     static final int FLAG_HAS_COORDINATES = 1 << 1;
-    static final int FLAG_AUTOMATIC_ALTITUDE = 1 << 2;
-    static final int FLAG_EASY_LOCATION_SWITCH = 1 << 3;
-    static final int FLAG_EMERGENCY_DISABLE = 1 << 4;
     static final int FLAG_ENGINE_READY = 1 << 5;
-    static final int FLAG_JOYSTICK_ENABLED = 1 << 6;
-
     static final int MOVEMENT_NONE = 0;
     static final int MOVEMENT_WALKING = 1;
     static final int MOVEMENT_JOGGING = 2;
-
     private NativeBridge() {}
-
-    static native long probe();
-
-    static native long publish(
-            long generation,
-            int flags,
-            int movementMode,
-            double latitude,
-            double longitude,
-            double altitude,
-            float speed,
-            float bearing,
-            float accuracy);
-
-    static native long move(
-            long generation,
-            float normalizedX,
-            float normalizedY,
-            int movementMode,
-            boolean active,
-            long eventMonotonicNanos);
-
-    static native int lastFlags();
-
-    static native int lastMovementMode();
-
-    static native long clearEmergency();
-
-    static native long disableModule();
-
-    static long safeProbe() {
-        try {
-            return probe();
-        } catch (LinkageError ignored) {
-            return -6L;
-        }
-    }
-
-    static long safePublish(
-            long generation,
-            int flags,
-            int movementMode,
-            double latitude,
-            double longitude,
-            double altitude,
-            float speed,
-            float bearing,
-            float accuracy) {
-        try {
-            return publish(generation, flags, movementMode, latitude, longitude,
-                    altitude, speed, bearing, accuracy);
-        } catch (LinkageError ignored) {
-            return -6L;
-        }
-    }
-
-    static long safeMove(
-            long generation,
-            float normalizedX,
-            float normalizedY,
-            int movementMode,
-            boolean active,
-            long eventMonotonicNanos) {
-        try {
-            return move(generation, normalizedX, normalizedY, movementMode,
-                    active, eventMonotonicNanos);
-        } catch (LinkageError ignored) {
-            return -6L;
-        }
-    }
-
-    static int safeLastFlags() {
-        try {
-            return lastFlags();
-        } catch (LinkageError ignored) {
-            return 0;
-        }
-    }
-
-    static int safeLastMovementMode() {
-        try {
-            return lastMovementMode();
-        } catch (LinkageError ignored) {
-            return MOVEMENT_NONE;
-        }
-    }
-
-    static long safeClearEmergency() {
-        try {
-            return clearEmergency();
-        } catch (LinkageError ignored) {
-            return -6L;
-        }
-    }
-
-    static long safeDisableModule() {
-        try {
-            return disableModule();
-        } catch (LinkageError ignored) {
-            return -6L;
-        }
-    }
 }

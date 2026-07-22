@@ -2,7 +2,7 @@ package dev.retrofrost.geoveil.manager;
 
 import java.util.Locale;
 
-/** Versioned manager-side representation of the state consumed by the native bridge. */
+/** Versioned manager-side representation of the state shared through LSPosed. */
 public final class GeoState {
     public static final int SCHEMA_VERSION = 2;
 

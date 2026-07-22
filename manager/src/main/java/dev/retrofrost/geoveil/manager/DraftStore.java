@@ -3,7 +3,7 @@ package dev.retrofrost.geoveil.manager;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-/** Stores only the manager draft. The native bridge remains the authority for active engine state. */
+/** Stores the manager-side draft; LSPosed remote preferences hold the live state. */
 final class DraftStore {
     private static final String PREFS = "geoveil_manager_draft_v2";
 
