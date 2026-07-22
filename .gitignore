@@ -2,6 +2,7 @@
 .gradle/
 build/
 **/build/
+manager/.signing/
 local.properties
 *.iml
 .idea/

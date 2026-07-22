@@ -18,9 +18,11 @@ ui_print ""
 [ "${ZYGISK_ENABLED:-0}" = "1" ] || abort "! Enable Zygisk in Magisk before installing GeoVeil"
 
 BIN="$MODPATH/zygisk/arm64-v8a.so"
+CONTROL="$MODPATH/bin/geoveilctl"
 ENGINE_DEX="$MODPATH/manager.apk"
 MANAGER_UI="$MODPATH/manager-ui.apk"
 [ -s "$BIN" ] || abort "! Missing compiled Zygisk payload; this source tree is not a flashable build"
+[ -s "$CONTROL" ] || abort "! Missing root manager control helper"
 [ -s "$ENGINE_DEX" ] || abort "! Missing raw engine DEX payload"
 [ -s "$MANAGER_UI" ] || abort "! Missing top-app overlay runtime archive"
 
@@ -60,6 +62,7 @@ set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755
 [ -f "$MODPATH/uninstall.sh" ] && set_perm "$MODPATH/uninstall.sh" 0 0 0755
 set_perm "$BIN" 0 0 0644
+set_perm "$CONTROL" 0 0 0755
 set_perm "$ENGINE_DEX" 0 0 0644
 set_perm "$MANAGER_UI" 0 0 0644
 

@@ -9,18 +9,18 @@ Implemented in source:
 - strict latitude, longitude, altitude, speed, bearing, and accuracy validation
 - remembered coordinate drafts while virtualization stays disabled by default
 - Easy Location Switch control disabled by default
-- bounded background client for the versioned native bridge
+- bounded background `su` client for the module-owned root control helper
 - launcher-visible `MainActivity` in `dev.retrofrost.geoveil.manager`
 - no network permission, analytics, or telemetry
 - reproducible `javac`, D8, AAPT2, zipalign, and apksigner build
 
-The native Zygisk library recognizes the manager process after specialization, registers the JNI bridge against the APK's own class loader, and connects it to the root companion. Magisk's module Action launches `MainActivity` directly. If the module bridge is unavailable, the APK remains open and reports pass-through instead of crashing.
+The APK requests Magisk root by executing the module-owned `bin/geoveilctl` helper. That helper validates and updates the root-only state mapping consumed by the engine. The manager APK itself is not a Zygisk injection target. Magisk's module Action launches `MainActivity` directly. If root is denied or the helper is absent, the APK remains open and reports the concrete failure instead of pretending to be connected.
 
 Current limitation: CI proves compilation and packaging, not target-device behavior. Working location virtualization is not claimed until Android 16 device validation passes.
 
 Implementation rules retained:
 
-- no manager loading during zygote or pre-specialization callbacks
+- no manager loading or routing during zygote or app-specialization callbacks
 - no Shell, `system_server`, or zygote restart when opening the manager
 - no synchronous bridge calls on the UI thread
 - no direct synchronous calls from the manager into `system_server`

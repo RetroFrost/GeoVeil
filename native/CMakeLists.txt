@@ -24,18 +24,33 @@ add_library(geoveil SHARED
     src/main/cpp/engine.cpp
 )
 
+add_executable(geoveilctl
+    src/main/cpp/control.cpp
+)
+
 target_include_directories(geoveil PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src/main/cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/third_party/zygisk
 )
 
 target_compile_features(geoveil PRIVATE cxx_std_23)
+target_compile_features(geoveilctl PRIVATE cxx_std_23)
 target_compile_options(geoveil PRIVATE
     -Wall
     -Wextra
     -Werror
     -fvisibility=hidden
     -fvisibility-inlines-hidden
+    -fno-exceptions
+    -fno-rtti
+    -ffunction-sections
+    -fdata-sections
+)
+
+target_compile_options(geoveilctl PRIVATE
+    -Wall
+    -Wextra
+    -Werror
     -fno-exceptions
     -fno-rtti
     -ffunction-sections
@@ -52,6 +67,10 @@ target_link_libraries(geoveil PRIVATE
 target_link_options(geoveil PRIVATE
     -Wl,--gc-sections
     -Wl,--exclude-libs,ALL
+)
+
+target_link_options(geoveilctl PRIVATE
+    -Wl,--gc-sections
 )
 
 set_target_properties(geoveil PROPERTIES

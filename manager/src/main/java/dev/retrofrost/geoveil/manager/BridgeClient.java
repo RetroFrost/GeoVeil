@@ -4,18 +4,29 @@ import android.os.SystemClock;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Bounded manager-side client backed by the persistent Zygisk companion connection. */
+/** Bounded client using root control in the manager and JNI inside injected overlays. */
 final class BridgeClient {
     private static final AtomicLong GENERATION = new AtomicLong(
             Math.max(1L, SystemClock.elapsedRealtimeNanos()));
+    private final boolean rootTransport;
+    private final RootBridge rootBridge;
+
+    BridgeClient() {
+        this(false);
+    }
+
+    BridgeClient(boolean rootTransport) {
+        this.rootTransport = rootTransport;
+        rootBridge = rootTransport ? new RootBridge() : null;
+    }
 
     Result probe() {
-        return decode(NativeBridge.safeProbe());
+        return decode(rootTransport ? rootBridge.probe() : NativeBridge.safeProbe());
     }
 
     Result publish(GeoState state) {
-        int currentFlags = NativeBridge.safeLastFlags();
-        int currentMovement = NativeBridge.safeLastMovementMode();
+        int currentFlags = lastFlags();
+        int currentMovement = lastMovementMode();
         if (state.movementMode == NativeBridge.MOVEMENT_NONE) {
             state.movementMode = currentMovement == NativeBridge.MOVEMENT_JOGGING
                     ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
@@ -39,7 +50,7 @@ final class BridgeClient {
         if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
 
         long generation = nextGeneration();
-        long result = NativeBridge.safePublish(
+        long result = publishRaw(
                 generation,
                 flags,
                 state.movementMode,
@@ -53,13 +64,13 @@ final class BridgeClient {
     }
 
     Result publishMovement(GeoState state, boolean enabled, int movementMode) {
-        state.enabled = (NativeBridge.safeLastFlags() & NativeBridge.FLAG_ENABLED) != 0;
+        state.enabled = (lastFlags() & NativeBridge.FLAG_ENABLED) != 0;
         state.joystickEnabled = enabled;
         state.movementMode = movementMode == NativeBridge.MOVEMENT_JOGGING
                 ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
         GeoState.Validation validation = state.validate();
         if (!validation.valid) {
-            return Result.error(validation.message, NativeBridge.safeLastFlags());
+            return Result.error(validation.message, lastFlags());
         }
 
         int flags = 0;
@@ -68,7 +79,7 @@ final class BridgeClient {
         if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
         if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
         if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
-        long result = NativeBridge.safePublish(
+        long result = publishRaw(
                 nextGeneration(), flags, state.movementMode,
                 state.latitude, state.longitude, state.altitude,
                 state.speed, state.bearing, state.accuracy);
@@ -77,7 +88,7 @@ final class BridgeClient {
 
     Result move(float normalizedX, float normalizedY, int movementMode, boolean active) {
         long generation = nextGeneration();
-        long result = NativeBridge.safeMove(
+        long result = rootTransport ? -6L : NativeBridge.safeMove(
                 generation,
                 normalizedX,
                 normalizedY,
@@ -88,11 +99,39 @@ final class BridgeClient {
     }
 
     Result clearEmergency() {
-        return decode(NativeBridge.safeClearEmergency());
+        return decode(rootTransport
+                ? rootBridge.clearEmergency() : NativeBridge.safeClearEmergency());
     }
 
     Result disableModule() {
-        return decode(NativeBridge.safeDisableModule());
+        return decode(rootTransport
+                ? rootBridge.disableModule() : NativeBridge.safeDisableModule());
+    }
+
+    int lastFlags() {
+        return rootTransport ? rootBridge.lastFlags() : NativeBridge.safeLastFlags();
+    }
+
+    int lastMovementMode() {
+        return rootTransport
+                ? rootBridge.lastMovementMode() : NativeBridge.safeLastMovementMode();
+    }
+
+    private long publishRaw(
+            long generation,
+            int flags,
+            int movementMode,
+            double latitude,
+            double longitude,
+            double altitude,
+            float speed,
+            float bearing,
+            float accuracy) {
+        return rootTransport
+                ? rootBridge.publish(generation, flags, movementMode, latitude, longitude,
+                        altitude, speed, bearing, accuracy)
+                : NativeBridge.safePublish(generation, flags, movementMode, latitude, longitude,
+                        altitude, speed, bearing, accuracy);
     }
 
     private static long nextGeneration() {
@@ -104,8 +143,8 @@ final class BridgeClient {
         }
     }
 
-    private static Result decode(long value) {
-        int flags = NativeBridge.safeLastFlags();
+    private Result decode(long value) {
+        int flags = lastFlags();
         if (value >= 0L) return Result.ok(value, flags);
         String message;
         if (value == -2L) {
@@ -119,7 +158,9 @@ final class BridgeClient {
         } else if (value == -7L) {
             message = "The location engine is not ready; genuine location remains active.";
         } else {
-            message = "The root companion connection is unavailable; genuine location remains active.";
+            message = rootTransport
+                    ? "Root access or the GeoVeil module control helper is unavailable."
+                    : "The overlay bridge is unavailable; genuine location remains active.";
         }
         return Result.error(message, flags);
     }

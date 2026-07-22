@@ -47,6 +47,7 @@ for source in \
   manager/src/main/java/dev/retrofrost/geoveil/manager/ManagerScreen.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/NativeBridge.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/EasyLocationController.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/MovementPanel.java \
   manager/src/main/java/dev/retrofrost/geoveil/manager/JoystickView.java \
@@ -73,6 +74,14 @@ require_text 'GeoVeil-Manager-standalone.apk' manager/build-manager.sh \
   "manager build does not produce an installable standalone APK"
 require_text 'apksigner' manager/build-manager.sh \
   "standalone manager APK is not signed"
+require_text 'geoveil-development-apk-signing-v1' .github/workflows/build.yml \
+  "development APK signing identity is not stable across CI builds"
+require_text 'new ProcessBuilder("su", "-c"' \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
+  "standalone manager does not request root through Magisk su"
+require_text '/data/adb/modules/geoveil/bin/geoveilctl' \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
+  "standalone manager does not target the module control helper"
 if grep -Fq -- '--activity-new-task' module/action.sh; then
   fail "unsupported am start option --activity-new-task is forbidden"
 fi
@@ -90,6 +99,7 @@ for source in \
   native/src/main/cpp/bridge.cpp \
   native/src/main/cpp/bridge.hpp \
   native/src/main/cpp/companion.cpp \
+  native/src/main/cpp/control.cpp \
   native/src/main/cpp/engine.cpp \
   native/src/main/cpp/engine.hpp \
   native/src/main/cpp/ipc.hpp \
@@ -109,6 +119,13 @@ require_text 'lsplant_static' native/CMakeLists.txt \
   "LSPlant is not linked into the active engine"
 require_text 'dobby_static' native/CMakeLists.txt \
   "Dobby is not linked into the active engine"
+require_text 'add_executable(geoveilctl' native/CMakeLists.txt \
+  "root manager control helper is not compiled"
+require_text '/data/adb/geoveil/control/request.bin' \
+  native/src/main/cpp/control_protocol.hpp \
+  "root control helper has no bounded companion request channel"
+require_text 'start_control_watcher(&state)' native/src/main/cpp/companion.cpp \
+  "root companion does not serve standalone manager requests"
 require_text '-DANDROID_PLATFORM="${NATIVE_PLATFORM}"' .github/workflows/build.yml \
   "native CI must use the NDK-supported native API level"
 require_text 'manager/build/dex/classes.dex out/stage/manager.apk' .github/workflows/build.yml \
@@ -117,6 +134,8 @@ require_text 'manager/build/manager.apk out/stage/manager-ui.apk' .github/workfl
   "top-app overlay archive is not packaged separately"
 require_text 'manager/build/GeoVeil-Manager-standalone.apk' .github/workflows/build.yml \
   "standalone manager APK is not uploaded by CI"
+require_text 'build/native/geoveilctl out/stage/bin/geoveilctl' .github/workflows/build.yml \
+  "module package does not include the root control helper"
 
 echo "Checking one-crash fuse and recovery markers..."
 require_text 'GUARD_DIR/emergency_disable' module/service.sh \
@@ -164,15 +183,13 @@ done
 echo "Checking specialization boundaries..."
 require_text 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
   "unrelated application children must unload"
-require_text 'kManagerPackage[] = "dev.retrofrost.geoveil.manager"' \
-  native/src/main/cpp/module.cpp \
-  "Zygisk routing does not identify the standalone manager package"
-require_text 'ClientRole::kManagerApp' native/src/main/cpp/module.cpp \
-  "standalone manager process does not receive the manager bridge role"
+if grep -Fq -- 'kManagerPackage' native/src/main/cpp/module.cpp; then
+  fail "standalone manager must use root control, not Zygisk APK injection"
+fi
 require_text 'connectCompanion()' native/src/main/cpp/module.cpp \
   "pre-specialization companion connection is missing"
 require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
-  "post-specialization manager/overlay bootstrap is missing"
+  "post-specialization overlay bootstrap is missing"
 require_text 'postServerSpecialize' native/src/main/cpp/module.cpp \
   "post-specialization system_server engine bootstrap is missing"
 require_text '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \

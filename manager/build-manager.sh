@@ -13,8 +13,8 @@ ZIPALIGN="$BUILD_TOOLS/zipalign"
 APKSIGNER="$BUILD_TOOLS/apksigner"
 MANIFEST="$ROOT/src/main/AndroidManifest.xml"
 RESOURCES="$ROOT/src/main/res"
-VERSION_NAME="0.2.0-rc2-dev-standalone1"
-VERSION_CODE=203
+VERSION_NAME="0.2.0-rc2-dev-standalone2"
+VERSION_CODE=204
 
 for required in "$ANDROID_JAR" "$D8" "$AAPT2" "$ZIPALIGN" "$APKSIGNER" "$MANIFEST"; do
   [[ -e "$required" ]] || {
@@ -71,20 +71,24 @@ jar --create --file "$ROOT/build/manager-classes.jar" -C "$ROOT/build/classes" .
   "$ROOT/build/standalone-unsigned-unaligned.apk" \
   "$ROOT/build/standalone-unsigned.apk"
 
-# Development CI produces a self-contained installable APK. The key is ephemeral,
-# is never packaged, and intentionally pairs this development APK with this run.
-KEYSTORE="$ROOT/build/standalone-signing.jks"
+# Development CI caches this non-release key outside the disposable build tree so
+# later development APKs remain upgrade-compatible. Release signing must replace it.
+SIGNING_DIR="${GEOVEIL_SIGNING_DIR:-$ROOT/.signing}"
+KEYSTORE="${GEOVEIL_KEYSTORE:-$SIGNING_DIR/geoveil-development.jks}"
 KEY_PASSWORD=geoveil-ci-pair
-keytool -genkeypair \
-  -keystore "$KEYSTORE" \
-  -storepass "$KEY_PASSWORD" \
-  -keypass "$KEY_PASSWORD" \
-  -alias geoveil-manager \
-  -keyalg RSA \
-  -keysize 3072 \
-  -validity 10000 \
-  -dname "CN=GeoVeil Paired Development Build,O=RetroFrost" \
-  -noprompt >/dev/null 2>&1
+mkdir -p "$SIGNING_DIR"
+if [[ ! -s "$KEYSTORE" ]]; then
+  keytool -genkeypair \
+    -keystore "$KEYSTORE" \
+    -storepass "$KEY_PASSWORD" \
+    -keypass "$KEY_PASSWORD" \
+    -alias geoveil-manager \
+    -keyalg RSA \
+    -keysize 3072 \
+    -validity 10000 \
+    -dname "CN=GeoVeil Development Build,O=RetroFrost" \
+    -noprompt >/dev/null 2>&1
+fi
 "$APKSIGNER" sign \
   --ks "$KEYSTORE" \
   --ks-key-alias geoveil-manager \

@@ -9,7 +9,7 @@ The standalone manager is a required RC2 component. It is installed as a normal 
 - present a Material 3 interface with dynamic system colors and dark-mode support
 - keep location virtualization state independent from the manager UI lifecycle
 - never restart Shell, `system_server`, or zygote to open the manager
-- fail safely: an unavailable native bridge must leave virtualization unchanged, keep the APK open, and report pass-through
+- fail safely: denied root or an unavailable module helper must leave virtualization unchanged, keep the APK open, and report the failure
 
 ## Process boundary
 
@@ -20,8 +20,9 @@ Android launcher or Magisk module Action
 dev.retrofrost.geoveil.manager process
         |
         +-- open the installed MainActivity
-        +-- register the JNI bridge after Zygisk specialization
-        +-- read and write validated state through the companion bridge
+        +-- request Magisk root through su
+        +-- invoke the module-owned geoveilctl helper
+        +-- read and write validated root-only shared state
         +-- optionally request the foreground joystick overlay
 
 system_server child
@@ -32,11 +33,9 @@ system_server child
 
 The manager must not contain the location hook itself. Closing or crashing the manager must not unload hooks, unhook ART, restart a process, or silently change the current enabled state.
 
-## Zygisk routing
+## Root control routing
 
-The native module may retain itself in the manager process only after a minimal pre-specialization process-name check. Pre-specialization code must not load DEX, parse configuration, create threads, access files, or perform Java/ART reflection.
-
-Native bridge registration occurs after the manager child has specialized. Every unrelated application child unloads the GeoVeil native library unless it is the explicitly scoped foreground joystick target. If the manager is denylisted from Zygisk, the UI must report that the bridge is unavailable.
+The manager is not injected by Zygisk. It executes `/data/adb/modules/geoveil/bin/geoveilctl` through Magisk `su`, causing the normal superuser grant prompt. The helper accepts only bounded versioned operations, revalidates every field, locks writers, and updates the same root-only mapping passed to `system_server`. Foreground joystick targets retain their separate post-specialization JNI path.
 
 ## User interface
 
@@ -101,7 +100,7 @@ The overlay and manager must never perform synchronous file reads or wait for so
 
 ## State bridge
 
-Manager writes go to the root companion through a versioned binary protocol. The companion validates and publishes an atomic latest-state snapshot. `system_server` reads that snapshot without blocking.
+Manager writes go through the root `geoveilctl` executable. The helper validates and publishes an atomic latest-state snapshot. `system_server` reads that snapshot without blocking.
 
 Required properties:
 
@@ -140,7 +139,8 @@ The manager portion of RC2 is blocked until all of these pass on the target Andr
 
 - launch from Magisk Action on repeated attempts
 - launch repeatedly from both Android's launcher and Magisk Action
-- report an unavailable bridge without crashing when the module is missing, disabled, or denylisted
+- show the Magisk root request and report denied/missing-helper failures without crashing
+- paste a full Maps coordinate pair or URL without manually separating latitude and longitude
 - no Shell, `system_server`, or zygote restart during manager launch
 - manager close/reopen preserves the intended state
 - invalid coordinate input cannot reach the native state snapshot

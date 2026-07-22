@@ -46,6 +46,12 @@ jobs:
           sudo apt-get install --yes -qq ninja-build zip >/dev/null
           cmake --version
 
+      - name: Restore development APK signing key
+        uses: actions/cache@v4
+        with:
+          path: manager/.signing
+          key: geoveil-development-apk-signing-v1
+
       - name: Build standalone manager APK, engine helper, and joystick DEX archive
         shell: bash
         run: |
@@ -135,7 +141,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/native/libgeoveil.so
+          test -s build/native/geoveilctl
           file build/native/libgeoveil.so | tee build/native/file.txt
+          file build/native/geoveilctl | tee build/native/control-file.txt
           readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
           readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
           grep -q 'zygisk_module_entry' build/native/symbols.txt
@@ -147,13 +155,14 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf out
-          mkdir -p out/stage/zygisk
+          mkdir -p out/stage/zygisk out/stage/bin
           cp -a module/. out/stage/
           # system_server receives a raw DEX through InMemoryDexClassLoader.
           cp manager/build/dex/classes.dex out/stage/manager.apk
           # Top-app joystick overlays receive an APK/ZIP through PathClassLoader.
           cp manager/build/manager.apk out/stage/manager-ui.apk
           cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
+          cp build/native/geoveilctl out/stage/bin/geoveilctl
           find out/stage -type d -exec chmod 0755 {} +
           find out/stage -type f -exec chmod 0644 {} +
           chmod 0755 \
@@ -161,6 +170,7 @@ jobs:
             out/stage/cleanup-legacy.sh \
             out/stage/service.sh \
             out/stage/action.sh
+          chmod 0755 out/stage/bin/geoveilctl
           test "$(head -c 3 out/stage/manager.apk)" = "dex"
           unzip -l out/stage/manager-ui.apk | grep -q 'classes.dex'
           (
@@ -172,6 +182,7 @@ jobs:
           unzip -t GeoVeil-RC2-development.zip
           unzip -l GeoVeil-RC2-development.zip | tee contents.txt
           grep -q 'zygisk/arm64-v8a.so' contents.txt
+          grep -q 'bin/geoveilctl' contents.txt
           grep -q 'manager.apk' contents.txt
           grep -q 'manager-ui.apk' contents.txt
 
@@ -193,6 +204,7 @@ jobs:
             manager/build/manager-contents.txt
             native/third_party/hook-dependencies.lock
             build/native/file.txt
+            build/native/control-file.txt
             build/native/elf-header.txt
             build/native/symbols.txt
           if-no-files-found: error

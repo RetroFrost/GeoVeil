@@ -80,6 +80,12 @@ jobs:
           sudo apt-get update
           sudo apt-get install --yes ninja-build zip
 
+      - name: Restore development APK signing key
+        uses: actions/cache@v4
+        with:
+          path: manager/.signing
+          key: geoveil-development-apk-signing-v1
+
       - name: Build standalone manager and runtime DEX archive
         shell: bash
         run: |
@@ -117,7 +123,9 @@ jobs:
         run: |
           set -euo pipefail
           test -s build/native/libgeoveil.so
+          test -s build/native/geoveilctl
           file build/native/libgeoveil.so | tee build/native/file.txt
+          file build/native/geoveilctl | tee build/native/control-file.txt
           readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
           readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
           grep -q 'zygisk_module_entry' build/native/symbols.txt
@@ -133,11 +141,12 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf dist
-          mkdir -p dist/stage/zygisk
+          mkdir -p dist/stage/zygisk dist/stage/bin
           cp -a module/. dist/stage/
           cp manager/build/manager.apk dist/stage/manager.apk
           cp manager/build/manager.apk dist/stage/manager-ui.apk
           cp build/native/libgeoveil.so dist/stage/zygisk/arm64-v8a.so
+          cp build/native/geoveilctl dist/stage/bin/geoveilctl
           sed -i "s/^version=.*/version=${VERSION}/" dist/stage/module.prop
           sed -i "s/^versionCode=.*/versionCode=$((200000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
           find dist/stage -type d -exec chmod 0755 {} +
@@ -147,6 +156,7 @@ jobs:
             dist/stage/cleanup-legacy.sh \
             dist/stage/service.sh \
             dist/stage/action.sh
+          chmod 0755 dist/stage/bin/geoveilctl
 
       - name: Validate staged module layout
         shell: bash
@@ -158,6 +168,7 @@ jobs:
           test -s dist/stage/manager.apk
           test -s dist/stage/manager-ui.apk
           test -s dist/stage/zygisk/arm64-v8a.so
+          test -x dist/stage/bin/geoveilctl
           unzip -l dist/stage/manager.apk | grep -q 'classes.dex'
           unzip -l dist/stage/manager-ui.apk | grep -q 'classes.dex'
           for forbidden in system vendor product system_ext system.prop sepolicy.rule post-fs-data.sh hooks_enabled; do
@@ -184,6 +195,7 @@ jobs:
           unzip -t "$ARCHIVE"
           unzip -l "$ARCHIVE" | tee "${ARCHIVE}.contents.txt"
           grep -q 'zygisk/arm64-v8a.so' "${ARCHIVE}.contents.txt"
+          grep -q 'bin/geoveilctl' "${ARCHIVE}.contents.txt"
           grep -q 'manager.apk' "${ARCHIVE}.contents.txt"
 
       - name: Upload workflow artifact
@@ -202,6 +214,7 @@ jobs:
             manager/build/standalone-certificates.txt
             manager/build/manager-contents.txt
             build/native/file.txt
+            build/native/control-file.txt
             build/native/elf-header.txt
             build/native/symbols.txt
           if-no-files-found: error

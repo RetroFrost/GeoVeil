@@ -1,12 +1,15 @@
 package dev.retrofrost.geoveil.manager;
 
 import android.app.Activity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
-import android.os.SystemClock;
+import android.net.Uri;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -23,12 +26,17 @@ import android.widget.TextView;
 import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /** Programmatic Material-3-inspired surface hosted by the standalone manager activity. */
 final class ManagerScreen extends ScrollView {
+    private static final Pattern COORDINATE_PAIR = Pattern.compile(
+            "([+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+))(?:\\s*[,;]\\s*|\\s+)"
+                    + "([+-]?(?:\\d+(?:\\.\\d+)?|\\.\\d+))");
     private final Activity activity;
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
-    private final BridgeClient bridge = new BridgeClient();
+    private final BridgeClient bridge = new BridgeClient(true);
 
     private final boolean dark;
     private final int surface;
@@ -96,7 +104,7 @@ final class ManagerScreen extends ScrollView {
         root.addView(title);
 
         TextView subtitle = text(
-                "Standalone manager connected to the GeoVeil Magisk module. The engine stays pass-through unless the native bridge accepts a valid state.",
+                "Root manager for the GeoVeil Magisk module. Grant Magisk access, paste a Maps coordinate pair, and apply it to the engine.",
                 15,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -105,11 +113,14 @@ final class ManagerScreen extends ScrollView {
 
         LinearLayout statusCard = card();
         statusTitle = text("Checking engine", 16, onSurface, Typeface.BOLD);
-        statusDetail = text("Waiting for the local state bridge…", 14, onSurfaceVariant, Typeface.NORMAL);
+        statusDetail = text("Waiting for Magisk root access…", 14, onSurfaceVariant, Typeface.NORMAL);
         statusDetail.setPadding(0, dp(4), 0, 0);
         statusCard.addView(statusTitle);
         statusCard.addView(statusDetail);
         root.addView(statusCard, spacedMatch());
+        Button retryRoot = button("Retry root connection", false);
+        retryRoot.setOnClickListener(view -> probeBridge());
+        root.addView(retryRoot, spacedMatchSmall());
 
         LinearLayout enableCard = card();
         LinearLayout enableRow = new LinearLayout(activity);
@@ -134,6 +145,10 @@ final class ManagerScreen extends ScrollView {
         TextView coordinateHeading = text("Coordinates", 20, onSurface, Typeface.BOLD);
         coordinateHeading.setPadding(0, dp(10), 0, dp(10));
         root.addView(coordinateHeading);
+
+        Button pasteCoordinates = button("Paste Maps coordinates", false);
+        pasteCoordinates.setOnClickListener(view -> pasteCoordinatePair());
+        root.addView(pasteCoordinates, spacedMatchSmall());
 
         latitudeField = new FilledField("Latitude", "-90 to 90");
         longitudeField = new FilledField("Longitude", "-180 to 180");
@@ -244,14 +259,23 @@ final class ManagerScreen extends ScrollView {
         setStatus("Manager ready", "Checking whether the RC2 engine bridge is available…", false);
         worker.execute(() -> {
             BridgeClient.Result result = bridge.probe();
-            for (int attempt = 0; attempt < 12 && !result.success; ++attempt) {
-                SystemClock.sleep(250L);
-                result = bridge.probe();
-            }
             BridgeClient.Result finalResult = result;
             activity.runOnUiThread(() -> {
                 if (finalResult.success) {
-                    setStatus("Engine bridge connected", "Pass-through is active until you enable a valid coordinate.", true);
+                    boolean active = finalResult.engineReady()
+                            && (finalResult.flags & NativeBridge.FLAG_ENABLED) != 0;
+                    setEnabledSwitch(active);
+                    if (finalResult.emergencyDisabled()) {
+                        setStatus("Emergency pass-through",
+                                "Root is granted, but GeoVeil's safety latch is active.", false);
+                    } else if (!finalResult.engineReady()) {
+                        setStatus("Root granted; engine not ready",
+                                "Wait for engine initialization before enabling a coordinate.", false);
+                    } else {
+                        setStatus(active ? "Virtual location enabled" : "Root module connected",
+                                active ? "The engine accepted an enabled state."
+                                        : "Engine ready; genuine location remains active.", true);
+                    }
                 } else {
                     setStatus("Pass-through mode", finalResult.message, false);
                     setEnabledSwitch(false);
@@ -304,6 +328,50 @@ final class ManagerScreen extends ScrollView {
         setEnabledSwitch(false);
         validateFields();
         setStatus("Draft cleared", "The engine was not enabled or restarted.", true);
+    }
+
+    private void pasteCoordinatePair() {
+        ClipboardManager clipboard = (ClipboardManager) activity.getSystemService(
+                Context.CLIPBOARD_SERVICE);
+        ClipData data = clipboard != null ? clipboard.getPrimaryClip() : null;
+        CharSequence clipboardText = data != null && data.getItemCount() > 0
+                ? data.getItemAt(0).coerceToText(activity) : null;
+        if (clipboardText == null) {
+            setStatus("Nothing to paste", "Copy a Maps coordinate pair or URL first.", false);
+            return;
+        }
+
+        String decoded = Uri.decode(clipboardText.toString());
+        String preferred = decoded;
+        int at = decoded.indexOf('@');
+        if (at >= 0 && at + 1 < decoded.length()) preferred = decoded.substring(at + 1);
+        double[] pair = findCoordinatePair(preferred);
+        if (pair == null && !preferred.equals(decoded)) pair = findCoordinatePair(decoded);
+        if (pair == null) {
+            setStatus("Coordinates not found",
+                    "Copy text containing latitude, longitude, or a Google Maps URL.", false);
+            return;
+        }
+
+        latitudeField.edit.setText(String.format(Locale.US, "%.8f", pair[0]));
+        longitudeField.edit.setText(String.format(Locale.US, "%.8f", pair[1]));
+        validateFields();
+        setStatus("Coordinates pasted",
+                String.format(Locale.US, "%.8f, %.8f", pair[0], pair[1]), true);
+    }
+
+    private static double[] findCoordinatePair(String text) {
+        Matcher matcher = COORDINATE_PAIR.matcher(text);
+        while (matcher.find()) {
+            Double latitude = GeoState.parseFiniteDouble(matcher.group(1));
+            Double longitude = GeoState.parseFiniteDouble(matcher.group(2));
+            if (latitude != null && longitude != null
+                    && latitude >= -90.0 && latitude <= 90.0
+                    && longitude >= -180.0 && longitude <= 180.0) {
+                return new double[]{latitude, longitude};
+            }
+        }
+        return null;
     }
 
     private void validateFields() {

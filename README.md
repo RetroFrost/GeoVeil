@@ -14,7 +14,8 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 - The root companion validates every state generation and handles static coordinates, walking/jogging movement, joystick deltas, recovery, and module-disable requests.
 - An unfinished hook-install marker causes a replacement `system_server` to enter emergency pass-through rather than installing the hooks again.
 - The Magisk late-start monitor observes the guarded `system_server` PID without killing or restarting any process.
-- The manager is a normal launcher-visible APK in `dev.retrofrost.geoveil.manager`; the module Action opens its explicit launcher activity.
+- The manager is a normal launcher-visible APK in `dev.retrofrost.geoveil.manager`; it requests Magisk root and invokes the module-owned `geoveilctl` helper.
+- A copied Maps coordinate pair or URL can populate both validated coordinate fields without manual splitting.
 - The manager includes filled coordinate fields, dynamic system colors, validation, remembered drafts, altitude/speed/bearing/accuracy controls, Easy Location Switch, recovery controls, and a movement panel.
 - A movable 360-degree joystick is injected into the foreground top application without requesting Android's system-overlay permission; walking and jogging are mutually exclusive.
 - The module packages raw `classes.dex` for `system_server` separately from the runtime archive used by the foreground joystick overlay.
@@ -30,7 +31,7 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 
 ## Validation status
 
-The API 36 standalone manager APK, runtime DEX, arm64 Zygisk library, companion export, source guard, ZIP layout, and checksums build successfully in GitHub Actions. The APK and module must come from the same build. That does **not** prove device behavior. RC2 remains blocked on cold/warm boot tests, deliberate `system_server` failure recovery, manager and joystick cycles, framework/fused-location verification, Google Maps behavior, disable restoration, and calls/SMS/data/SIM/IMEI/connectivity regression testing.
+The API 36 standalone manager APK, root control executable, runtime DEX, arm64 Zygisk library, companion export, source guard, ZIP layout, and checksums build successfully in GitHub Actions. The APK and module must come from the same build. That does **not** prove device behavior. RC2 remains blocked on cold/warm boot tests, deliberate `system_server` failure recovery, manager and joystick cycles, framework/fused-location verification, Google Maps behavior, disable restoration, and calls/SMS/data/SIM/IMEI/connectivity regression testing.
 
 The optional Wi-Fi and Bluetooth metadata sanitizers described in the roadmap are not included in this location-engine branch; they require separate compatibility probes and may not be added to the release until they can remain completely fail-open and connectivity-neutral.
 

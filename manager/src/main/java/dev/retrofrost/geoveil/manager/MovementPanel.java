@@ -19,7 +19,7 @@ import java.util.concurrent.Executors;
 /** Bottom control surface for overlay activation and fail-open recovery. */
 final class MovementPanel extends LinearLayout {
     private final Activity activity;
-    private final BridgeClient bridge = new BridgeClient();
+    private final BridgeClient bridge = new BridgeClient(true);
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private final int primary;
     private final int onSurface;
@@ -112,7 +112,7 @@ final class MovementPanel extends LinearLayout {
 
     private void publishJoystick(boolean enabled) {
         GeoState draft = DraftStore.load(activity);
-        int flags = NativeBridge.lastFlags();
+        int flags = bridge.lastFlags();
         if ((flags & NativeBridge.FLAG_ENABLED) == 0) {
             suppress = true;
             joystickSwitch.setChecked(false);

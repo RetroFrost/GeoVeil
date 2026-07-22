@@ -6,6 +6,7 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <atomic>
 #include <cerrno>
 #include <cmath>
 #include <cstdint>
@@ -13,10 +14,12 @@
 #include <cstring>
 #include <fcntl.h>
 #include <mutex>
+#include <pthread.h>
 #include <time.h>
 
 #include <linux/memfd.h>
 
+#include "control_protocol.hpp"
 #include "ipc.hpp"
 #include "state.hpp"
 #include "zygisk.hpp"
@@ -134,6 +137,7 @@ public:
     CompanionState() {
         ensure_directory(kStateDirectory, 0700);
         ensure_directory(kGuardDirectory, 0700);
+        ensure_directory(kControlDirectory, 0700);
         state_fd_ = create_state_fd();
         if (state_fd_ < 0) return;
         shared_ = static_cast<SharedStateV2*>(mmap(nullptr, sizeof(SharedStateV2),
@@ -384,6 +388,75 @@ CompanionState& companion_state() {
     return state;
 }
 
+bool write_control_response(const ControlResponse& response) {
+    const int fd = open(kControlResponseTemp,
+            O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0600);
+    if (fd < 0) return false;
+    const bool written = write_full(fd, &response, sizeof(response)) && fsync(fd) == 0;
+    close(fd);
+    return written && rename(kControlResponseTemp, kControlResponse) == 0;
+}
+
+void* control_watcher(void* opaque) {
+    auto* state = static_cast<CompanionState*>(opaque);
+    for (;;) {
+        const int fd = open(kControlRequest, O_RDONLY | O_CLOEXEC);
+        if (fd < 0) {
+            usleep(20000);
+            continue;
+        }
+        ControlRequest request;
+        const bool read_ok = read_full(fd, &request, sizeof(request));
+        close(fd);
+        unlink(kControlRequest);
+        if (!read_ok || request.magic != kControlMagic
+                || request.version != kControlVersion) {
+            continue;
+        }
+
+        ControlResponse output;
+        output.nonce = request.nonce;
+        switch (static_cast<Operation>(request.operation)) {
+            case Operation::kProbe:
+                output.response = state->probe();
+                break;
+            case Operation::kPublish: {
+                Response current = state->probe();
+                if ((request.publish.flags & kFlagEnabled) != 0
+                        && (current.flags & kFlagEngineReady) == 0) {
+                    current.status = static_cast<int32_t>(Status::kNotReady);
+                    output.response = current;
+                } else {
+                    output.response = state->publish(request.generation, request.publish);
+                }
+                break;
+            }
+            case Operation::kClearEmergency:
+                output.response = state->clear_emergency();
+                break;
+            case Operation::kDisableModule:
+                output.response = state->disable_module();
+                break;
+            default:
+                output.response.status = static_cast<int32_t>(Status::kBadMessage);
+                break;
+        }
+        (void)write_control_response(output);
+    }
+}
+
+std::atomic<bool> control_watcher_started{false};
+
+void start_control_watcher(CompanionState* state) {
+    if (state == nullptr || control_watcher_started.exchange(true)) return;
+    pthread_t thread{};
+    if (pthread_create(&thread, nullptr, control_watcher, state) == 0) {
+        pthread_detach(thread);
+    } else {
+        control_watcher_started.store(false);
+    }
+}
+
 Response handle_message(CompanionState& state, const ClientHello& hello,
         const MessageHeader& header, const void* payload) {
     if (header.magic != kIpcMagic || header.version != kIpcVersion) {
@@ -450,6 +523,7 @@ void companion_handler(int client) {
         close(client);
         return;
     }
+    start_control_watcher(&state);
     ClientHello hello;
     if (!read_full(client, &hello, sizeof(hello)) || hello.magic != kIpcMagic
             || hello.version != kIpcVersion) {

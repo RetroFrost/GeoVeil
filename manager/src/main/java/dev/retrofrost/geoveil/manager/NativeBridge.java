@@ -1,8 +1,8 @@
 package dev.retrofrost.geoveil.manager;
 
 /**
- * JNI surface registered by the Zygisk payload in the specialized manager process.
- * No library is loaded from Java and no Android service is used.
+ * JNI surface registered only in specialized foreground-overlay processes.
+ * The standalone manager uses RootBridge instead of this injected transport.
  */
 final class NativeBridge {
     static final int FLAG_ENABLED = 1;

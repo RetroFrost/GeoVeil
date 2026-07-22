@@ -4,7 +4,6 @@
 
 #include <atomic>
 #include <cstdint>
-#include <cstring>
 #include <pthread.h>
 #include <time.h>
 
@@ -17,11 +16,9 @@ namespace geoveil {
 namespace {
 
 constexpr jint kFirstApplicationUid = 10000;
-constexpr char kManagerPackage[] = "dev.retrofrost.geoveil.manager";
 constexpr char kManagerArchive[] = "/data/local/tmp/geoveil/manager.apk";
 constexpr char kOverlayEntryClass[] = "dev.retrofrost.geoveil.manager.OverlayEntry";
 constexpr useconds_t kBootstrapDelayMicros = 250000;
-constexpr int kManagerBootstrapAttempts = 40;
 constexpr int kOverlayBootstrapAttempts = 40;
 constexpr unsigned int kHealthyObservationSeconds = 30;
 
@@ -37,15 +34,6 @@ bool clear_exception(JNIEnv* env) {
     if (env == nullptr || !env->ExceptionCheck()) return false;
     env->ExceptionClear();
     return true;
-}
-
-bool jstring_equals(JNIEnv* env, jstring value, const char* expected) {
-    if (env == nullptr || value == nullptr || expected == nullptr) return false;
-    const char* chars = env->GetStringUTFChars(value, nullptr);
-    if (chars == nullptr || clear_exception(env)) return false;
-    const bool equal = std::strcmp(chars, expected) == 0;
-    env->ReleaseStringUTFChars(value, chars);
-    return equal;
 }
 
 jobject current_application(JNIEnv* env) {
@@ -103,18 +91,14 @@ class GeoVeilModule final : public zygisk::ModuleBase {
 public:
     void onLoad(zygisk::Api* api, JNIEnv* env) override {
         api_ = api;
-        env_ = env;
         if (env != nullptr) (void)env->GetJavaVM(&vm_);
     }
 
     void preAppSpecialize(zygisk::AppSpecializeArgs* args) override {
         uid_ = args != nullptr ? args->uid : -1;
-        is_manager_app_child_ = args != nullptr && uid_ >= kFirstApplicationUid
-                && jstring_equals(env_, args->nice_name, kManagerPackage);
         is_top_app_child_ = args != nullptr && uid_ >= kFirstApplicationUid
-                && !is_manager_app_child_
                 && args->is_top_app != nullptr && *args->is_top_app == JNI_TRUE;
-        if (!is_manager_app_child_ && !is_top_app_child_) {
+        if (!is_top_app_child_) {
             if (api_ != nullptr) api_->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
             return;
         }
@@ -125,12 +109,11 @@ public:
     }
 
     void postAppSpecialize(const zygisk::AppSpecializeArgs*) override {
-        if ((!is_manager_app_child_ && !is_top_app_child_) || vm_ == nullptr
+        if (!is_top_app_child_ || vm_ == nullptr
                 || companion_socket_ < 0 || bootstrap_started_.exchange(true)) {
             return;
         }
-        process_role_ = is_manager_app_child_
-                ? ClientRole::kManagerApp : ClientRole::kTopAppOverlay;
+        process_role_ = ClientRole::kTopAppOverlay;
         pthread_t thread{};
         if (pthread_create(&thread, nullptr, &GeoVeilModule::app_bootstrap_thread, this) == 0) {
             pthread_detach(thread);
@@ -192,31 +175,13 @@ private:
 
         JNIEnv* env = nullptr;
         if (vm_->AttachCurrentThread(&env, nullptr) != JNI_OK || env == nullptr) return;
-        const int attempts = process_role_ == ClientRole::kManagerApp
-                ? kManagerBootstrapAttempts : kOverlayBootstrapAttempts;
-        for (int attempt = 0; attempt < attempts; ++attempt) {
-            const bool installed = process_role_ == ClientRole::kManagerApp
-                    ? install_manager_bridge(env)
-                    : access(kManagerArchive, R_OK) == 0
-                            && install_app_entry(env, kOverlayEntryClass);
+        for (int attempt = 0; attempt < kOverlayBootstrapAttempts; ++attempt) {
+            const bool installed = access(kManagerArchive, R_OK) == 0
+                    && install_app_entry(env, kOverlayEntryClass);
             if (installed) break;
             usleep(kBootstrapDelayMicros);
         }
         vm_->DetachCurrentThread();
-    }
-
-    bool install_manager_bridge(JNIEnv* env) {
-        if (env->PushLocalFrame(24) != JNI_OK) return false;
-        bool installed = false;
-        do {
-            jobject application = current_application(env);
-            if (application == nullptr) break;
-            jobject loader = application_class_loader(env, application);
-            if (loader == nullptr) break;
-            installed = companion_.register_manager_natives(env, loader);
-        } while (false);
-        env->PopLocalFrame(nullptr);
-        return installed;
     }
 
     bool install_app_entry(JNIEnv* env, const char* entry_name) {
@@ -302,13 +267,11 @@ private:
     }
 
     zygisk::Api* api_ = nullptr;
-    JNIEnv* env_ = nullptr;
     JavaVM* vm_ = nullptr;
     CompanionClient companion_;
     ClientRole process_role_ = ClientRole::kUnknown;
     jint uid_ = -1;
     int companion_socket_ = -1;
-    bool is_manager_app_child_ = false;
     bool is_top_app_child_ = false;
     const SharedStateV2* shared_state_ = nullptr;
     uint64_t engine_generation_ = 0;

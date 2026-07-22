@@ -15,23 +15,23 @@ system_server child
     └── central location virtualization hooks (only after every probe succeeds)
 
 dev.retrofrost.geoveil.manager child
-└── post-specialization native-bridge registration only
-    ├── installed standalone manager APK
-    ├── validated companion state client
+└── ordinary installed application process
+    ├── Magisk su request
+    ├── module-owned geoveilctl state client
     └── optional foreground joystick controller
 
 all other app children
 └── unload GeoVeil immediately unless an explicitly-scoped foreground overlay requires a reviewed future path
 ```
 
-The native module retains itself for the standalone manager package and explicitly scoped foreground-overlay processes. Unrelated application children unload it immediately.
+The native module does not retain itself for the standalone manager package. It retains only the explicitly scoped foreground-overlay processes; unrelated application children unload it immediately.
 
 ## Zygote-safety rules
 
 `onLoad()` and all pre-specialization callbacks must remain tiny and deterministic:
 
 - store framework pointers only
-- at most perform the minimal manager process-name and foreground-role routing comparison
+- at most perform the minimal foreground-role routing comparison
 - no Java/ART method hooks
 - no manager DEX/resource loading
 - no threads
@@ -84,8 +84,9 @@ Core properties:
 
 - launched from Magisk's GeoVeil module Action
 - installed as the launcher-visible `dev.retrofrost.geoveil.manager` package
-- native bridge registration occurs only after the manager process specializes
-- the APK remains usable as a fail-safe status UI when the native bridge is unavailable
+- the APK requests Magisk root and calls the module-owned `geoveilctl` executable
+- the helper submits bounded root-only requests to the companion, which updates its memfd-backed state; engine readers remain lock-free
+- the APK remains usable as a fail-safe status UI when root or the helper is unavailable
 - manager UI writes validated state through the companion bridge
 - no direct synchronous manager-to-`system_server` calls
 - manager close or crash does not change engine state

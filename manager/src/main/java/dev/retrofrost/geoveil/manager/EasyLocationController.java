@@ -21,6 +21,7 @@ final class EasyLocationController implements ClipboardManager.OnPrimaryClipChan
 
     private final Application application;
     private final ClipboardManager clipboard;
+    private final BridgeClient bridge = new BridgeClient(true);
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private String lastHandled = "";
 
@@ -40,13 +41,7 @@ final class EasyLocationController implements ClipboardManager.OnPrimaryClipChan
     @Override
     public void onPrimaryClipChanged() {
         GeoState draft = DraftStore.load(application);
-        int flags = NativeBridge.lastFlags();
-        if (!draft.easyLocationSwitch
-                || (flags & NativeBridge.FLAG_ENABLED) == 0
-                || (flags & NativeBridge.FLAG_ENGINE_READY) == 0
-                || (flags & NativeBridge.FLAG_EMERGENCY_DISABLE) != 0) {
-            return;
-        }
+        if (!draft.easyLocationSwitch) return;
 
         ClipData clip = clipboard.getPrimaryClip();
         if (clip == null || clip.getItemCount() == 0) return;
@@ -69,7 +64,14 @@ final class EasyLocationController implements ClipboardManager.OnPrimaryClipChan
         lastHandled = value;
 
         worker.execute(() -> {
-            BridgeClient.Result result = new BridgeClient().publish(draft);
+            BridgeClient.Result probe = bridge.probe();
+            if (!probe.success
+                    || (probe.flags & NativeBridge.FLAG_ENABLED) == 0
+                    || !probe.engineReady()
+                    || probe.emergencyDisabled()) {
+                return;
+            }
+            BridgeClient.Result result = bridge.publish(draft);
             if (result.success) DraftStore.save(application, draft);
         });
     }

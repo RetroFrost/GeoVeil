@@ -12,7 +12,7 @@ Planned RC1 completion requirements:
 - source guard and native ELF validation
 - no-hook pass-through payload for `system_server`
 - ordinary app children unload the module
-- standalone manager process routing reserves a post-specialization bridge-registration point
+- standalone manager uses an explicit Magisk-root control helper instead of app-process injection
 - safe cleanup of withdrawn Alpha 1 and Alpha 3 state
 - installer cleanup returns to the installer instead of terminating it
 - one-crash fuse for an unfinished hook-install generation
@@ -49,7 +49,7 @@ RC2 is the first milestone intended to implement GeoVeil's complete user-facing 
 - standalone Material-3-inspired Android manager
 - launched from Magisk's GeoVeil module Action
 - installed as the launcher-visible `dev.retrofrost.geoveil.manager` package
-- native bridge registered after the manager process specializes
+- Magisk root request and module-owned `geoveilctl` integration
 - no Shell, `system_server`, or zygote restart during launch
 - filled Material 3 coordinate fields with inline animated validation
 - Material You dynamic colors, light/dark themes, rounded surfaces, and Material Symbols Outlined
@@ -60,7 +60,7 @@ RC2 is the first milestone intended to implement GeoVeil's complete user-facing 
 - module-disable and emergency-recovery controls through the root companion
 - manager close or crash does not change engine state or block `system_server`
 - manager UI loads normally from the installed APK
-- missing or denylisted module bridge is reported without an application crash
+- denied root or a missing module helper is reported without an application crash
 
 See [`MANAGER.md`](MANAGER.md) for the complete manager process contract, UI behavior, state bridge, recovery controls, and release tests.
 
@@ -99,7 +99,7 @@ RC2 must not be published as working until all of the following are true:
 - hook installation is all-or-nothing
 - hook paths use only bounded, nonblocking state reads
 - the installed manager opens reliably from both Magisk Action and Android's launcher
-- the manager bridge connects after specialization without restarting a framework process
+- the root control helper updates engine state without restarting a framework process
 - manager close, reopen, and deliberate failure do not destabilize `system_server`
 - invalid input cannot reach the companion's published state snapshot
 - Google Maps and fused-location consumers observe the intended coherent location state
