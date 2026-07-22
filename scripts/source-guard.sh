@@ -30,7 +30,8 @@ echo "Checking non-invasive Magisk layout..."
 [[ ! -e module/sepolicy.rule ]] || fail "unreviewed sepolicy.rule is forbidden"
 [[ ! -e module/post-fs-data.sh ]] || fail "early-boot post-fs-data.sh is forbidden"
 [[ ! -e module/hooks_enabled ]] || fail "virtualization must not be enabled in the package"
-[[ ! -e module/manager.apk ]] || fail "manager.apk must be produced by CI, not committed"
+[[ ! -e module/manager.apk ]] || fail "raw manager DEX must be produced by CI, not committed"
+[[ ! -e module/manager-ui.apk ]] || fail "Shell manager archive must be produced by CI, not committed"
 
 for script in module/customize.sh module/cleanup-legacy.sh module/service.sh module/action.sh; do
   require_file "$script"
@@ -56,6 +57,10 @@ require_text 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
   "Magisk Action does not carry the GeoVeil launch category"
 require_text 'com.android.shell/.BugreportWarningActivity' module/action.sh \
   "Shell trampoline component is missing"
+require_text 'MANAGER_SOURCE=$MODDIR/manager-ui.apk' module/action.sh \
+  "Magisk Action must stage the Shell manager archive, not the raw engine DEX"
+require_text 'MANAGER_UI=$MODDIR/manager-ui.apk' module/service.sh \
+  "late-start service must stage the Shell manager archive separately"
 require_text 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
   "sourced legacy cleanup must return to the installer"
 
@@ -86,6 +91,10 @@ require_text 'dobby_static' native/CMakeLists.txt \
   "Dobby is not linked into the active engine"
 require_text '-DANDROID_PLATFORM="${NATIVE_PLATFORM}"' .github/workflows/build.yml \
   "native CI must use the NDK-supported native API level"
+require_text 'manager/build/dex/classes.dex out/stage/manager.apk' .github/workflows/build.yml \
+  "system_server must receive a raw DEX, not an APK/ZIP container"
+require_text 'manager/build/manager.apk out/stage/manager-ui.apk' .github/workflows/build.yml \
+  "Shell manager archive is not packaged separately"
 
 echo "Checking one-crash fuse and recovery markers..."
 require_text 'GUARD_DIR/emergency_disable' module/service.sh \
@@ -142,6 +151,6 @@ require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
 require_text 'postServerSpecialize' native/src/main/cpp/module.cpp \
   "post-specialization system_server engine bootstrap is missing"
 require_text '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \
-  "specialized app bootstrap does not use the staged manager archive"
+  "specialized app bootstrap does not use the staged Shell manager archive"
 
 echo "GeoVeil complete RC2 source guard passed."
