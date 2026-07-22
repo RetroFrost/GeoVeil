@@ -28,7 +28,12 @@ jobs:
 
       - name: Run source safety guard
         shell: bash
-        run: bash scripts/source-guard.sh
+        run: |
+          bash scripts/source-guard.sh
+          sh -n module/customize.sh
+          sh -n module/cleanup-legacy.sh
+          sh -n module/service.sh
+          sh -n module/action.sh
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -127,6 +132,7 @@ jobs:
           readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
           readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
           grep -q 'zygisk_module_entry' build/native/symbols.txt
+          grep -q 'zygisk_companion_entry' build/native/symbols.txt
           ! grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt
 
       - name: Package RC2 development Magisk ZIP
