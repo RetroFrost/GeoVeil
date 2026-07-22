@@ -14,6 +14,7 @@ permissions:
 env:
   NDK_VERSION: 27.2.12479018
   ANDROID_PLATFORM: android-36
+  NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
@@ -89,7 +90,7 @@ jobs:
             cmake -S native -B build/native -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
               -DANDROID_ABI=arm64-v8a \
-              -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+              -DANDROID_PLATFORM="${NATIVE_PLATFORM}" \
               -DANDROID_STL=c++_static \
               -DCMAKE_BUILD_TYPE=Release
             cmake --build build/native --parallel 2
