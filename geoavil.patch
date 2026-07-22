@@ -39,15 +39,16 @@ index 5954e39..342d79e 100644
  
      void onFlyClick();
 diff --git a/app/src/main/java/com/github/fakegps/JoyStickManager.java b/app/src/main/java/com/github/fakegps/JoyStickManager.java
-index 4564ad6..c890a51 100644
+index 4564ad6..635e406 100644
 --- a/app/src/main/java/com/github/fakegps/JoyStickManager.java
 +++ b/app/src/main/java/com/github/fakegps/JoyStickManager.java
-@@ -27,11 +27,15 @@ public class JoyStickManager implements IJoyStickPresenter {
+@@ -27,11 +27,16 @@ public class JoyStickManager implements IJoyStickPresenter {
      public static double STEP_DEFAULT = 0.00002;
  
      private static JoyStickManager INSTANCE = new JoyStickManager();
 +    private static final String PREFS = "geoavil_preferences";
 +    private static final String PREF_AUTO_SHOW = "auto_show_analog";
++    private static final String PREF_MOVE_STEP = "move_step";
  
      private Context mContext;
      private LocationThread mLocationThread;
@@ -58,7 +59,16 @@ index 4564ad6..c890a51 100644
  
      private LocPoint mCurrentLocPoint;
  
-@@ -64,7 +68,9 @@ public class JoyStickManager implements IJoyStickPresenter {
+@@ -48,6 +53,8 @@ public class JoyStickManager implements IJoyStickPresenter {
+ 
+     public void init(Context context) {
+         mContext = context;
++        mMoveStep = mContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++                .getFloat(PREF_MOVE_STEP, (float) STEP_DEFAULT);
+     }
+ 
+     public static JoyStickManager get() {
+@@ -64,7 +71,9 @@ public class JoyStickManager implements IJoyStickPresenter {
          // Start foreground service for Android 8.0+
          startForegroundService();
  
@@ -69,7 +79,7 @@ index 4564ad6..c890a51 100644
          mIsStarted = true;
      }
  
-@@ -79,6 +85,8 @@ public class JoyStickManager implements IJoyStickPresenter {
+@@ -79,6 +88,8 @@ public class JoyStickManager implements IJoyStickPresenter {
  
          hideJoyStick();
          mIsStarted = false;
@@ -78,7 +88,7 @@ index 4564ad6..c890a51 100644
      }
  
      private void startForegroundService() {
-@@ -120,6 +128,20 @@ public class JoyStickManager implements IJoyStickPresenter {
+@@ -120,6 +131,20 @@ public class JoyStickManager implements IJoyStickPresenter {
          }
      }
  
@@ -99,10 +109,16 @@ index 4564ad6..c890a51 100644
      public LocPoint getCurrentLocPoint() {
          return mCurrentLocPoint;
      }
-@@ -162,6 +184,21 @@ public class JoyStickManager implements IJoyStickPresenter {
-         mMoveStep = moveStep;
-     }
+@@ -160,6 +185,25 @@ public class JoyStickManager implements IJoyStickPresenter {
  
+     public void setMoveStep(double moveStep) {
+         mMoveStep = moveStep;
++        if (mContext != null && moveStep > 0) {
++            mContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++                    .edit().putFloat(PREF_MOVE_STEP, (float) moveStep).apply();
++        }
++    }
++
 +    @Override
 +    public void onAnalogMove(float x, float y) {
 +        // Screen Y points down; geographic latitude points up.
@@ -116,11 +132,9 @@ index 4564ad6..c890a51 100644
 +            mCurrentLocPoint.setLongitude(mCurrentLocPoint.getLongitude() + (mAnalogX * mMoveStep));
 +            mCurrentLocPoint.setLatitude(mCurrentLocPoint.getLatitude() - (mAnalogY * mMoveStep));
 +        }
-+    }
-+
-     public double getMoveStep() {
-         return mMoveStep;
      }
+ 
+     public double getMoveStep() {
 diff --git a/app/src/main/java/com/github/fakegps/LocationThread.java b/app/src/main/java/com/github/fakegps/LocationThread.java
 index c6387b5..0667ba8 100644
 --- a/app/src/main/java/com/github/fakegps/LocationThread.java
@@ -322,7 +336,7 @@ index 0000000..6311163
 +    }
 +}
 diff --git a/app/src/main/java/com/github/fakegps/ui/JoyStickView.java b/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
-index 46b87d7..154dcff 100644
+index 46b87d7..bee7bde 100644
 --- a/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
 +++ b/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
 @@ -12,6 +12,7 @@ import android.widget.FrameLayout;
@@ -333,16 +347,18 @@ index 46b87d7..154dcff 100644
  import com.tencent.fakegps.R;
  
  /**
-@@ -63,7 +64,8 @@ public class JoyStickView extends FrameLayout {
+@@ -63,8 +64,9 @@ public class JoyStickView extends FrameLayout {
          //the real width and height is needed, or the view cannot be shown
          mWindowLayoutParams.width = mViewWidth;
          mWindowLayoutParams.height = mViewHeight;
 -        mWindowLayoutParams.x = ScreenUtils.getScreenWidth(context);
+-        mWindowLayoutParams.y = ScreenUtils.getScreenHeight(context) / 2;
 +        // Keep the default panel fully visible near the right edge.
 +        mWindowLayoutParams.x = Math.max(0, ScreenUtils.getScreenWidth(context) - mViewWidth - 16);
-         mWindowLayoutParams.y = ScreenUtils.getScreenHeight(context) / 2;
++        mWindowLayoutParams.y = Math.max(0, ScreenUtils.getScreenHeight(context) - mViewHeight - 220);
  
          findViewById(R.id.btn_set_loc).setOnClickListener(mOnClickListener);
+         findViewById(R.id.btn_fly_to).setOnClickListener(mOnClickListener);
 @@ -79,10 +81,21 @@ public class JoyStickView extends FrameLayout {
              }
          });
@@ -369,44 +385,50 @@ index 46b87d7..154dcff 100644
  
      }
  
-@@ -93,6 +106,9 @@ public class JoyStickView extends FrameLayout {
+@@ -93,6 +106,10 @@ public class JoyStickView extends FrameLayout {
      }
  
      public void addToWindow() {
 +        android.content.SharedPreferences prefs = getContext().getSharedPreferences("geoavil_preferences", Context.MODE_PRIVATE);
 +        mWindowLayoutParams.x = prefs.getInt("joystick_x", mWindowLayoutParams.x);
 +        mWindowLayoutParams.y = prefs.getInt("joystick_y", mWindowLayoutParams.y);
++        clampWindowPosition();
          mWindowManager.addView(this, mWindowLayoutParams);
          isShowing = true;
      }
-@@ -153,5 +169,8 @@ public class JoyStickView extends FrameLayout {
+@@ -152,6 +169,17 @@ public class JoyStickView extends FrameLayout {
+     private void updateViewPosition() {
          mWindowLayoutParams.x = (int) (mXInScreen - mXInView);
          mWindowLayoutParams.y = (int) (mYInScreen - mYInView);
++        clampWindowPosition();
          mWindowManager.updateViewLayout(this, mWindowLayoutParams);
 +        getContext().getSharedPreferences("geoavil_preferences", Context.MODE_PRIVATE)
 +                .edit().putInt("joystick_x", mWindowLayoutParams.x)
 +                .putInt("joystick_y", mWindowLayoutParams.y).apply();
++    }
++
++    private void clampWindowPosition() {
++        int maxX = Math.max(0, ScreenUtils.getScreenWidth(getContext()) - mViewWidth);
++        int maxY = Math.max(0, ScreenUtils.getScreenHeight(getContext()) - mViewHeight - sStatusBarHeight);
++        mWindowLayoutParams.x = Math.max(0, Math.min(maxX, mWindowLayoutParams.x));
++        mWindowLayoutParams.y = Math.max(0, Math.min(maxY, mWindowLayoutParams.y));
      }
  }
 diff --git a/app/src/main/java/com/github/fakegps/ui/MainActivity.java b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
-index 5f18d80..7ad86ac 100644
+index 5f18d80..bb38f20 100644
 --- a/app/src/main/java/com/github/fakegps/ui/MainActivity.java
 +++ b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
-@@ -6,6 +6,9 @@ import android.content.Context;
+@@ -6,6 +6,8 @@ import android.content.Context;
  import android.content.DialogInterface;
  import android.content.Intent;
  import android.content.IntentFilter;
 +import android.location.Location;
-+import android.location.LocationListener;
 +import android.location.LocationManager;
  import android.content.pm.PackageManager;
  import android.net.Uri;
  import android.os.Build;
-@@ -16,11 +19,14 @@ import android.view.ContextMenu;
- import android.view.Menu;
- import android.view.MenuItem;
+@@ -18,9 +20,11 @@ import android.view.MenuItem;
  import android.view.View;
-+import android.view.MenuInflater;
  import android.widget.AdapterView;
  import android.widget.Button;
 +import android.widget.CheckBox;
@@ -417,6 +439,15 @@ index 5f18d80..7ad86ac 100644
  
  import androidx.annotation.NonNull;
  import androidx.appcompat.app.AlertDialog;
+@@ -39,6 +43,8 @@ import com.github.fakegps.model.LocPoint;
+ import com.tencent.fakegps.R;
+ 
+ import java.util.ArrayList;
++import java.util.List;
++import java.util.Locale;
+ 
+ public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+     private final double LAT_DEFAULT = 37.802406;
 @@ -55,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      private ListView mListView;
      private Button mBtnStart;
@@ -482,7 +513,7 @@ index 5f18d80..7ad86ac 100644
              }
          }
      }
-@@ -314,6 +330,61 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -314,6 +330,100 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          }
      };
  
@@ -504,41 +535,80 @@ index 5f18d80..7ad86ac 100644
 +    private void showMockStatusTester() {
 +        final TextView status = new TextView(this);
 +        status.setPadding(48, 32, 48, 16);
-+        status.setText("Waiting for a location update…");
++        status.setText("Reading Android location state...");
 +        final AlertDialog dialog = new AlertDialog.Builder(this)
 +                .setTitle("Mock location status")
 +                .setView(status)
++                .setPositiveButton("Refresh", null)
 +                .setNegativeButton("Close", null)
 +                .create();
 +
 +        final LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-+        final LocationListener listener = new LocationListener() {
-+            @Override
-+            public void onLocationChanged(@NonNull Location location) {
-+                String provider = location.getProvider() == null ? "unknown" : location.getProvider();
-+                status.setText(String.format(java.util.Locale.US,
-+                        "isMock = %s\n\nProvider: %s\nLatitude: %.6f\nLongitude: %.6f\nAccuracy: %.1f m",
-+                        location.isMock() ? "true" : "false", provider,
-+                        location.getLatitude(), location.getLongitude(), location.getAccuracy()));
-+            }
-+        };
 +        dialog.setOnShowListener(ignored -> {
-+            try {
-+                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-+                        != PackageManager.PERMISSION_GRANTED) {
-+                    status.setText("Location permission is required to test isMock.");
-+                    return;
-+                }
-+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, listener);
-+                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, listener);
-+                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-+                if (last != null) listener.onLocationChanged(last);
-+            } catch (Exception e) {
-+                status.setText("Unable to read location: " + e.getMessage());
-+            }
++            readAndroidMockStatus(status, locationManager);
++            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v ->
++                    readAndroidMockStatus(status, locationManager));
 +        });
-+        dialog.setOnDismissListener(ignored -> locationManager.removeUpdates(listener));
 +        dialog.show();
++    }
++
++    private void readAndroidMockStatus(TextView status, LocationManager locationManager) {
++        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
++                != PackageManager.PERMISSION_GRANTED) {
++            status.setText("Location permission is required to read Android location state.");
++            return;
++        }
++
++        try {
++            List<String> providers = locationManager.getProviders(true);
++            if (providers == null || providers.isEmpty()) {
++                providers = locationManager.getAllProviders();
++            }
++
++            StringBuilder builder = new StringBuilder();
++            builder.append("Source: Android LocationManager\n");
++            builder.append("Flag: Location.isMock / isFromMockProvider\n\n");
++
++            boolean foundLocation = false;
++            for (String provider : providers) {
++                Location location = locationManager.getLastKnownLocation(provider);
++                if (location == null) {
++                    builder.append(provider).append(": no last location\n");
++                    continue;
++                }
++
++                foundLocation = true;
++                builder.append(formatLocationForMockStatus(location)).append("\n\n");
++            }
++
++            if (!foundLocation) {
++                builder.append("No last known Android location yet.\n");
++                builder.append("Open Maps or start GeoAvil once, then refresh.");
++            }
++
++            status.setText(builder.toString().trim());
++        } catch (Exception e) {
++            status.setText("Unable to read Android location state: " + e.getMessage());
++        }
++    }
++
++    private String formatLocationForMockStatus(Location location) {
++        String provider = location.getProvider() == null ? "unknown" : location.getProvider();
++        return String.format(Locale.US,
++                "%s\nisMock = %s\nlat/lon = %.6f, %.6f\naccuracy = %.1f m",
++                provider,
++                isMockLocation(location) ? "true" : "false",
++                location.getLatitude(),
++                location.getLongitude(),
++                location.hasAccuracy() ? location.getAccuracy() : 0f);
++    }
++
++    @SuppressWarnings("deprecation")
++    private boolean isMockLocation(Location location) {
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
++            return location.isMock();
++        }
++        return location.isFromMockProvider();
 +    }
 +
  
@@ -576,10 +646,59 @@ index 4459957..091766b 100644
          android:layout_marginTop="15dp"
          android:text="@string/bookmark"
 diff --git a/app/src/main/res/layout/joystick_layout.xml b/app/src/main/res/layout/joystick_layout.xml
-index ebb1aa5..533080a 100644
+index ebb1aa5..147e37a 100644
 --- a/app/src/main/res/layout/joystick_layout.xml
 +++ b/app/src/main/res/layout/joystick_layout.xml
-@@ -31,10 +31,29 @@
+@@ -2,39 +2,67 @@
+ <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+               android:layout_width="@dimen/joystick_width"
+               android:layout_height="@dimen/joystick_height"
+-              android:orientation="vertical">
++              android:orientation="vertical"
++              android:padding="3dp">
+ 
+     <LinearLayout android:layout_width="match_parent"
+-                  android:layout_height="wrap_content"
+-                  android:layout_marginBottom="15dp"
++                  android:layout_height="30dp"
+                   android:gravity="center_horizontal"
+                   android:orientation="horizontal">
+ 
+         <ImageButton
+             android:id="@+id/btn_set_loc"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:src="@drawable/ic_set_loc"/>
++            android:layout_width="34dp"
++            android:layout_height="30dp"
++            android:padding="5dp"
++            android:background="#CCEEEEEE"
++            android:src="@drawable/ic_set_loc" />
+ 
+         <ImageButton
+             android:id="@+id/btn_fly_to"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:src="@drawable/ic_flight_takeoff"/>
++            android:layout_width="34dp"
++            android:layout_height="30dp"
++            android:layout_marginLeft="3dp"
++            android:layout_marginRight="3dp"
++            android:padding="5dp"
++            android:background="#CCEEEEEE"
++            android:src="@drawable/ic_flight_takeoff" />
+ 
+         <ImageButton
+             android:id="@+id/btn_bookmark"
+-            android:layout_width="wrap_content"
+-            android:layout_height="wrap_content"
+-            android:src="@drawable/ic_bookmark"/>
++            android:layout_width="34dp"
++            android:layout_height="30dp"
++            android:padding="5dp"
++            android:background="#CCEEEEEE"
++            android:src="@drawable/ic_bookmark" />
+ 
  
      </LinearLayout>
  
@@ -588,31 +707,31 @@ index ebb1aa5..533080a 100644
 -        android:layout_width="wrap_content"
 -        android:layout_height="wrap_content"
 -        android:layout_gravity="center"/>
--
--</LinearLayout>
-\ No newline at end of file
 +    <TextView
 +        android:id="@+id/joystick_drag_handle"
 +        android:layout_width="match_parent"
-+        android:layout_height="28dp"
++        android:layout_height="18dp"
 +        android:gravity="center"
-+        android:text="Drag to move"
++        android:text="Drag"
 +        android:textColor="#FFFFFFFF"
-+        android:textSize="11sp"
++        android:textSize="10sp"
 +        android:background="#55333333"/>
-+
+ 
+-</LinearLayout>
+\ No newline at end of file
 +    <Button
 +        android:id="@+id/btn_hide_joystick"
 +        android:layout_width="match_parent"
-+        android:layout_height="32dp"
++        android:layout_height="24dp"
 +        android:minHeight="0dp"
-+        android:text="Hide analog"
-+        android:textSize="10sp"/>
++        android:padding="0dp"
++        android:text="Hide"
++        android:textSize="10sp" />
 +
 +    <com.github.fakegps.ui.AnalogJoystickView
 +        android:id="@+id/analog_joystick"
-+        android:layout_width="150dp"
-+        android:layout_height="150dp"
++        android:layout_width="96dp"
++        android:layout_height="78dp"
 +        android:layout_gravity="center"
 +        android:contentDescription="Analog movement joystick"/>
 +
@@ -630,6 +749,20 @@ index 0000000..8733664
 +        android:title="Mock status tester"
 +        android:showAsAction="never" />
 +</menu>
+diff --git a/app/src/main/res/values/dimens.xml b/app/src/main/res/values/dimens.xml
+index cd47066..afabc41 100644
+--- a/app/src/main/res/values/dimens.xml
++++ b/app/src/main/res/values/dimens.xml
+@@ -2,7 +2,7 @@
+     <!-- Default screen margins, per the Android Design guidelines. -->
+     <dimen name="activity_horizontal_margin">16dp</dimen>
+     <dimen name="activity_vertical_margin">16dp</dimen>
+-    <dimen name="joystick_width">150dp</dimen>
+-    <dimen name="joystick_height">200dp</dimen>
++    <dimen name="joystick_width">116dp</dimen>
++    <dimen name="joystick_height">158dp</dimen>
+ 
+ </resources>
 diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
 index fe3f5c5..50b3166 100644
 --- a/app/src/main/res/values/strings.xml
