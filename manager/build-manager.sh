@@ -106,9 +106,12 @@ grep -q "launchable-activity: name='dev.retrofrost.geoveil.manager.MainActivity'
 unzip -t "$ROOT/build/manager.apk"
 unzip -l "$ROOT/build/manager.apk" | tee "$ROOT/build/manager-contents.txt"
 grep -q 'classes.dex' "$ROOT/build/manager-contents.txt"
-sha256sum "$ROOT/build/manager.apk" > "$ROOT/build/manager.apk.sha256"
-sha256sum "$ROOT/build/GeoVeil-Manager-standalone.apk" \
-  > "$ROOT/build/GeoVeil-Manager-standalone.apk.sha256"
+(
+  cd "$ROOT/build"
+  sha256sum manager.apk > manager.apk.sha256
+  sha256sum GeoVeil-Manager-standalone.apk \
+    > GeoVeil-Manager-standalone.apk.sha256
+)
 
 echo "Built $ROOT/build/manager.apk"
 echo "Built $ROOT/build/GeoVeil-Manager-standalone.apk"
