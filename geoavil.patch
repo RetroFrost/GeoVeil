@@ -415,10 +415,10 @@ index 46b87d7..bee7bde 100644
      }
  }
 diff --git a/app/src/main/java/com/github/fakegps/ui/MainActivity.java b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
-index 5f18d80..bb38f20 100644
+index 5f18d80..31fe6a1 100644
 --- a/app/src/main/java/com/github/fakegps/ui/MainActivity.java
 +++ b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
-@@ -6,6 +6,8 @@ import android.content.Context;
+@@ -6,10 +6,13 @@ import android.content.Context;
  import android.content.DialogInterface;
  import android.content.Intent;
  import android.content.IntentFilter;
@@ -427,7 +427,12 @@ index 5f18d80..bb38f20 100644
  import android.content.pm.PackageManager;
  import android.net.Uri;
  import android.os.Build;
-@@ -18,9 +20,11 @@ import android.view.MenuItem;
+ import android.os.Bundle;
++import android.os.SystemClock;
+ import android.provider.Settings;
+ import android.text.TextUtils;
+ import android.view.ContextMenu;
+@@ -18,9 +21,11 @@ import android.view.MenuItem;
  import android.view.View;
  import android.widget.AdapterView;
  import android.widget.Button;
@@ -439,16 +444,17 @@ index 5f18d80..bb38f20 100644
  
  import androidx.annotation.NonNull;
  import androidx.appcompat.app.AlertDialog;
-@@ -39,6 +43,8 @@ import com.github.fakegps.model.LocPoint;
+@@ -39,6 +44,9 @@ import com.github.fakegps.model.LocPoint;
  import com.tencent.fakegps.R;
  
  import java.util.ArrayList;
++import java.util.LinkedHashSet;
 +import java.util.List;
 +import java.util.Locale;
  
  public class MainActivity extends AppCompatActivity implements View.OnClickListener {
      private final double LAT_DEFAULT = 37.802406;
-@@ -55,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -55,6 +63,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      private ListView mListView;
      private Button mBtnStart;
      private Button mBtnSetNew;
@@ -457,7 +463,7 @@ index 5f18d80..bb38f20 100644
      private BookmarkAdapter mAdapter;
  
      // Pending start params - saved while requesting permissions
-@@ -97,6 +105,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -97,6 +107,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          mBtnSetNew.setOnClickListener(this);
          updateBtnSetNew();
  
@@ -472,7 +478,7 @@ index 5f18d80..bb38f20 100644
          initListView();
  
          registerBroadcastReceiver();
-@@ -170,17 +186,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -170,17 +188,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
              if (!Settings.canDrawOverlays(this)) {
                  new AlertDialog.Builder(this)
@@ -495,7 +501,7 @@ index 5f18d80..bb38f20 100644
                          .show();
                  return;
              }
-@@ -207,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -207,7 +225,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                  // Location granted, continue checking next permission
                  checkPermissionsAndStart();
              } else {
@@ -504,7 +510,7 @@ index 5f18d80..bb38f20 100644
              }
          } else if (requestCode == REQUEST_CODE_NOTIFICATION) {
              // Notification permission is optional, continue regardless
-@@ -223,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -223,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                  // Overlay granted, continue the chain
                  checkPermissionsAndStart();
              } else {
@@ -513,7 +519,7 @@ index 5f18d80..bb38f20 100644
              }
          }
      }
-@@ -314,6 +330,100 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+@@ -314,6 +332,118 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
          }
      };
  
@@ -560,14 +566,18 @@ index 5f18d80..bb38f20 100644
 +        }
 +
 +        try {
-+            List<String> providers = locationManager.getProviders(true);
-+            if (providers == null || providers.isEmpty()) {
-+                providers = locationManager.getAllProviders();
++            List<String> rawProviders = locationManager.getProviders(true);
++            if (rawProviders == null || rawProviders.isEmpty()) {
++                rawProviders = locationManager.getAllProviders();
 +            }
++            LinkedHashSet<String> providers = new LinkedHashSet<>(rawProviders);
 +
 +            StringBuilder builder = new StringBuilder();
-+            builder.append("Source: Android LocationManager\n");
-+            builder.append("Flag: Location.isMock / isFromMockProvider\n\n");
++            builder.append("GeoAvil service: ")
++                    .append(JoyStickManager.get().isStarted() ? "on" : "off")
++                    .append("\n");
++            builder.append("Source: Android LocationManager cache\n");
++            builder.append("Flag: Android Location.isMock / isFromMockProvider\n\n");
 +
 +            boolean foundLocation = false;
 +            for (String provider : providers) {
@@ -584,6 +594,8 @@ index 5f18d80..bb38f20 100644
 +            if (!foundLocation) {
 +                builder.append("No last known Android location yet.\n");
 +                builder.append("Open Maps or start GeoAvil once, then refresh.");
++            } else if (!JoyStickManager.get().isStarted()) {
++                builder.append("\nNote: GeoAvil is off. Android can keep the last mock location cached after the service stops.");
 +            }
 +
 +            status.setText(builder.toString().trim());
@@ -595,12 +607,24 @@ index 5f18d80..bb38f20 100644
 +    private String formatLocationForMockStatus(Location location) {
 +        String provider = location.getProvider() == null ? "unknown" : location.getProvider();
 +        return String.format(Locale.US,
-+                "%s\nisMock = %s\nlat/lon = %.6f, %.6f\naccuracy = %.1f m",
++                "%s\nisMock = %s\nage = %s\nlat/lon = %.6f, %.6f\naccuracy = %.1f m",
 +                provider,
 +                isMockLocation(location) ? "true" : "false",
++                getLocationAge(location),
 +                location.getLatitude(),
 +                location.getLongitude(),
 +                location.hasAccuracy() ? location.getAccuracy() : 0f);
++    }
++
++    private String getLocationAge(Location location) {
++        long elapsedNanos = location.getElapsedRealtimeNanos();
++        if (elapsedNanos <= 0) return "unknown";
++
++        long ageMillis = Math.max(0,
++                (SystemClock.elapsedRealtimeNanos() - elapsedNanos) / 1000000L);
++        if (ageMillis < 1000) return "live / under 1s";
++        if (ageMillis < 60000) return String.format(Locale.US, "%.1fs old", ageMillis / 1000f);
++        return String.format(Locale.US, "%.1fmin old", ageMillis / 60000f);
 +    }
 +
 +    @SuppressWarnings("deprecation")
