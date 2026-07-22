@@ -27,6 +27,7 @@ public:
     int64_t move(uint64_t generation, const MovePayload& payload);
     int64_t engine_begin(uint64_t generation);
     int64_t engine_healthy(uint64_t generation);
+    int64_t engine_abort(uint64_t generation);
     int64_t clear_emergency();
     int64_t disable_module();
 
