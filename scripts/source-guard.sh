@@ -57,6 +57,14 @@ require_text 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
   "Magisk Action does not carry the GeoVeil launch category"
 require_text 'com.android.shell/.BugreportWarningActivity' module/action.sh \
   "Shell trampoline component is missing"
+require_text '-f 0x10000000' module/action.sh \
+  "Magisk Action must pass FLAG_ACTIVITY_NEW_TASK using Android 16 intent syntax"
+if grep -Fq -- '--activity-new-task' module/action.sh; then
+  fail "unsupported am start option --activity-new-task is forbidden"
+fi
+if grep -Fq -- 'com.android.shell/.BugreportActivity' module/action.sh; then
+  fail "nonexistent Android 16 Shell fallback activity is forbidden"
+fi
 require_text 'MANAGER_SOURCE=$MODDIR/manager-ui.apk' module/action.sh \
   "Magisk Action must stage the Shell manager archive, not the raw engine DEX"
 require_text 'MANAGER_UI=$MODDIR/manager-ui.apk' module/service.sh \

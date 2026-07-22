@@ -39,16 +39,12 @@ launch_manager() {
     -a android.intent.action.MAIN \
     -c "$LAUNCH_CATEGORY" \
     -p com.android.shell \
-    -n "$COMPONENT" \
-    --activity-new-task 2>&1
+    -f 0x10000000 \
+    -n "$COMPONENT" 2>&1
 }
 
 OUTPUT=$(launch_manager com.android.shell/.BugreportWarningActivity)
 STATUS=$?
-if [ "$STATUS" -ne 0 ] || echo "$OUTPUT" | grep -qiE 'error|exception|does not exist'; then
-  OUTPUT=$(launch_manager com.android.shell/.BugreportActivity)
-  STATUS=$?
-fi
 
 printf '%s Manager launch result: %s\n' \
   "$(date '+%Y-%m-%d %H:%M:%S' 2>/dev/null || echo unknown-time)" \
