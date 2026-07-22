@@ -24,6 +24,8 @@ require_text 'getRemotePreferences' manager/src/main/java/dev/retrofrost/geoveil
 require_text 'getLatitude' manager/src/main/java/dev/retrofrost/geoveil/xposed/GeoVeilModule.java "latitude hook missing"
 require_text 'getLongitude' manager/src/main/java/dev/retrofrost/geoveil/xposed/GeoVeilModule.java "longitude hook missing"
 require_text 'getLastKnownLocation' manager/src/main/java/dev/retrofrost/geoveil/xposed/GeoVeilModule.java "LocationManager hook missing"
+require_text 'onSystemServerStarting' manager/src/main/java/dev/retrofrost/geoveil/xposed/GeoVeilModule.java "system-wide LSPosed callback missing"
+require_text 'LocationProviderManager' manager/src/main/java/dev/retrofrost/geoveil/xposed/GeoVeilModule.java "system-wide delivery hook missing"
 require_text 'GeoVeil-LSPosed.apk' manager/build-manager.sh "build does not produce LSPosed APK"
 require_text 'libxposed-service' manager/build-manager.sh "LSPosed service runtime is not packaged"
 require_text 'META-INF/xposed/java_init.list' manager/build-manager.sh "LSPosed metadata is not packaged"

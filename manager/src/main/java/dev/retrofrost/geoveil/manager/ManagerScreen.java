@@ -104,7 +104,7 @@ final class ManagerScreen extends ScrollView {
         root.addView(title);
 
         TextView subtitle = text(
-                "LSPosed location manager. Enable GeoVeil and select the apps you want to virtualize in LSPosed, then paste a Maps coordinate pair.",
+                "LSPosed location manager. Select apps for scoped delivery, or also select System Framework in LSPosed for system-wide delivery, then paste a Maps coordinate pair.",
                 15,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -134,7 +134,7 @@ final class ManagerScreen extends ScrollView {
         enableRow.addView(enabledSwitch);
         enableCard.addView(enableRow);
         TextView enableHelp = text(
-                "Only apps selected in LSPosed receive the location hooks. A coordinate is required before enabling virtual location.",
+                "Selected apps receive direct hooks. Selecting System Framework (android) in LSPosed enables the system-wide delivery path. A coordinate is required first.",
                 13,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -266,8 +266,8 @@ final class ManagerScreen extends ScrollView {
                             && (finalResult.flags & NativeBridge.FLAG_ENABLED) != 0;
                     setEnabledSwitch(active);
                     setStatus(active ? "Virtual location enabled" : "LSPosed connected",
-                            active ? "Selected apps read the live GeoVeil state."
-                                    : "Select target apps in LSPosed; genuine location remains active until enabled.", true);
+                            active ? "LSPosed delivers the live state to selected scopes."
+                                    : "Select target apps, or System Framework for system-wide delivery, in LSPosed.", true);
                 } else {
                     setStatus("Pass-through mode", finalResult.message, false);
                     setEnabledSwitch(false);

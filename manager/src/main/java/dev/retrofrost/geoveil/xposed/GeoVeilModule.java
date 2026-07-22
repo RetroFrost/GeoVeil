@@ -6,7 +6,9 @@ import android.location.Location;
 import android.util.Log;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.WeakHashMap;
 
@@ -41,6 +43,20 @@ public final class GeoVeilModule extends XposedModule {
             log(Log.INFO, TAG, "Installed app hooks for " + param.getPackageName());
         } catch (Throwable t) {
             log(Log.ERROR, TAG, "Could not install hooks for " + param.getPackageName(), t);
+        }
+    }
+
+    /**
+     * The system-wide path. LSPosed must scope this module to System Framework
+     * (package `android`) for this callback to run. The location is copied before
+     * LocationProviderManager distributes it to any requesting application.
+     */
+    @Override public void onSystemServerStarting(SystemServerStartingParam param) {
+        try {
+            installSystemDelivery(param.getClassLoader());
+            log(Log.INFO, TAG, "Installed system-wide LocationProviderManager delivery hook");
+        } catch (Throwable t) {
+            log(Log.ERROR, TAG, "System-wide delivery hook unavailable; app scopes still work", t);
         }
     }
 
@@ -98,6 +114,40 @@ public final class GeoVeilModule extends XposedModule {
             });
         } catch (Throwable t) {
             log(Log.WARN, TAG, "In-app joystick hook unavailable", t);
+        }
+    }
+
+    private void installSystemDelivery(ClassLoader loader) throws Exception {
+        Class<?> providerManager = Class.forName(
+                "com.android.server.location.provider.LocationProviderManager", false, loader);
+        Class<?> locationResult = Class.forName("android.location.LocationResult", false, loader);
+        Method asList = locationResult.getDeclaredMethod("asList");
+        Method wrap = locationResult.getDeclaredMethod("wrap", List.class);
+        for (Method method : providerManager.getDeclaredMethods()) {
+            if (!method.getName().equals("onReportLocation")) continue;
+            boolean acceptsResult = false;
+            for (Class<?> parameter : method.getParameterTypes()) {
+                if (parameter == locationResult) { acceptsResult = true; break; }
+            }
+            if (!acceptsResult) continue;
+            install(method, chain -> {
+                State state = state();
+                if (!state.active) return chain.proceed();
+                Object[] args = chain.getArgs().toArray();
+                for (int i = 0; i < args.length; i++) {
+                    if (args[i] == null || !locationResult.isInstance(args[i])) continue;
+                    @SuppressWarnings("unchecked")
+                    List<Location> incoming = (List<Location>) asList.invoke(args[i]);
+                    ArrayList<Location> replaced = new ArrayList<>(incoming.size());
+                    for (Location original : incoming) {
+                        Location copy = new Location(original);
+                        state.apply(copy);
+                        replaced.add(copy);
+                    }
+                    args[i] = wrap.invoke(null, replaced);
+                }
+                return chain.proceed(args);
+            });
         }
     }
 
