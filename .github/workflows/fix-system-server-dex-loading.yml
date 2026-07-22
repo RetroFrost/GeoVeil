@@ -1,0 +1,75 @@
+name: Apply raw system-server DEX packaging correction
+
+on:
+  push:
+    branches: [rc2-full-engine]
+    paths:
+      - '.github/workflows/fix-system-server-dex-loading.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: rc2-full-engine
+          fetch-depth: 0
+
+      - name: Package raw DEX for InMemoryDexClassLoader
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          companion = Path('native/src/main/cpp/companion.cpp')
+          text = companion.read_text(encoding='utf-8')
+          replacements = {
+              'constexpr char kManagerArchive[] = "/data/adb/modules/geoveil/manager.apk";':
+                  'constexpr char kEngineDex[] = "/data/adb/modules/geoveil/engine.dex";',
+              'manager_fd = open(kManagerArchive, O_RDONLY | O_CLOEXEC);':
+                  'manager_fd = open(kEngineDex, O_RDONLY | O_CLOEXEC);',
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one companion occurrence of {old!r}, found {count}')
+              text = text.replace(old, new)
+          companion.write_text(text, encoding='utf-8')
+
+          workflow = Path('.github/workflows/build.yml')
+          text = workflow.read_text(encoding='utf-8')
+          replacements = {
+              '          test -s manager/build/manager.apk\n':
+                  '          test -s manager/build/manager.apk\n'
+                  '          test -s manager/build/dex/classes.dex\n',
+              '          cp manager/build/manager.apk out/stage/manager.apk\n':
+                  '          cp manager/build/manager.apk out/stage/manager.apk\n'
+                  '          cp manager/build/dex/classes.dex out/stage/engine.dex\n',
+              "          grep -q 'manager.apk' contents.txt\n":
+                  "          grep -q 'manager.apk' contents.txt\n"
+                  "          grep -q 'engine.dex' contents.txt\n",
+              '            manager/build/manager.apk.sha256\n':
+                  '            manager/build/manager.apk.sha256\n'
+                  '            manager/build/dex/classes.dex\n',
+          }
+          for old, new in replacements.items():
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected one build-workflow occurrence of {old!r}, found {count}')
+              text = text.replace(old, new)
+          workflow.write_text(text, encoding='utf-8')
+          PY
+
+          grep -Fq '/data/adb/modules/geoveil/engine.dex' native/src/main/cpp/companion.cpp
+          grep -Fq 'out/stage/engine.dex' .github/workflows/build.yml
+          git rm .github/workflows/fix-system-server-dex-loading.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add native/src/main/cpp/companion.cpp .github/workflows/build.yml
+          git commit -m 'Load a raw DEX archive inside system_server'
+          git push origin HEAD:rc2-full-engine
