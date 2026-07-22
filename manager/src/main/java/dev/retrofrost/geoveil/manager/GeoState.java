@@ -2,9 +2,9 @@ package dev.retrofrost.geoveil.manager;
 
 import java.util.Locale;
 
-/** Versioned manager-side representation of the state intended for the native bridge. */
+/** Versioned manager-side representation of the state consumed by the native bridge. */
 public final class GeoState {
-    public static final int SCHEMA_VERSION = 1;
+    public static final int SCHEMA_VERSION = 2;
 
     public boolean enabled;
     public boolean hasCoordinates;
@@ -16,6 +16,8 @@ public final class GeoState {
     public float bearing;
     public float accuracy = 5.0f;
     public boolean easyLocationSwitch;
+    public boolean joystickEnabled;
+    public int movementMode = NativeBridge.MOVEMENT_NONE;
     public long generation = System.nanoTime();
 
     public Validation validate() {
@@ -30,6 +32,9 @@ public final class GeoState {
         if (!Double.isFinite(longitude) || longitude < -180.0d || longitude > 180.0d) {
             return Validation.error("Longitude must be a finite value from -180 to 180.");
         }
+        if (latitude == 0.0d && longitude == 0.0d) {
+            return Validation.error("Android rejects a non-mock framework location at exactly 0, 0.");
+        }
         if (!automaticAltitude && (!Double.isFinite(altitude) || altitude < -500.0d || altitude > 9000.0d)) {
             return Validation.error("Manual altitude must be from -500 to 9000 metres.");
         }
@@ -41,6 +46,12 @@ public final class GeoState {
         }
         if (!Float.isFinite(accuracy) || accuracy <= 0.0f || accuracy > 1000.0f) {
             return Validation.error("Accuracy must be greater than 0 and no more than 1000 metres.");
+        }
+        if (movementMode < NativeBridge.MOVEMENT_NONE || movementMode > NativeBridge.MOVEMENT_JOGGING) {
+            return Validation.error("Movement mode is incompatible with this manager.");
+        }
+        if (joystickEnabled && movementMode == NativeBridge.MOVEMENT_NONE) {
+            return Validation.error("Select walking or jogging before enabling the joystick.");
         }
         return Validation.ok();
     }
