@@ -3,7 +3,7 @@ name: Build GeoAvil APK
 on:
   workflow_dispatch:
   push:
-    branches: [main, geoavil-actions]
+    branches: [main]
 
 permissions:
   contents: read
@@ -11,32 +11,44 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
-      - name: Checkout build branch
+      - name: Checkout GeoAvil source
         uses: actions/checkout@v4
-      - name: Prepare FakeGPS source
-        run: |
-          git clone --depth 1 https://github.com/xiangtailiang/FakeGPS.git geoavil
-          git -C geoavil apply --binary ../geoavil.patch
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+
       - name: Install Android SDK packages
         run: |
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
+
       - name: Build GeoAvil
-        working-directory: geoavil
-        run: ./gradlew :app:assembleDebug
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:assembleDebug --stacktrace --info 2>&1 | tee build-output.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeoAvil-build-log
+          path: build-output.log
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Upload APK
+        if: success()
         uses: actions/upload-artifact@v4
         with:
           name: GeoAvil-mock-status-tester
-          path: geoavil/app/build/outputs/apk/debug/*.apk
+          path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
