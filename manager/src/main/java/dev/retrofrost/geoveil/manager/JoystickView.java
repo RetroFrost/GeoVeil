@@ -14,7 +14,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** Compact in-activity joystick. The header drags the control; the lower disc moves location. */
+/** Compact in-activity joystick. The header moves the control and switches walk/jog mode. */
 final class JoystickView extends View {
     private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
@@ -31,10 +31,13 @@ final class JoystickView extends View {
     private volatile float latestX;
     private volatile float latestY;
     private volatile boolean latestActive;
+    private volatile int movementMode = NativeBridge.MOVEMENT_WALKING;
     private long lastQueuedAt;
 
     JoystickView(Context context) {
         super(context);
+        int remembered = NativeBridge.lastMovementMode();
+        if (remembered == NativeBridge.MOVEMENT_JOGGING) movementMode = remembered;
         setClickable(true);
         setFocusable(false);
         setLayerType(View.LAYER_TYPE_SOFTWARE, null);
@@ -49,7 +52,7 @@ final class JoystickView extends View {
         super.onDraw(canvas);
         float width = getWidth();
         float height = getHeight();
-        float headerHeight = dp(30);
+        float headerHeight = dp(32);
         float centerX = width / 2f;
         float centerY = headerHeight + (height - headerHeight) / 2f;
         float radius = Math.min(width, height - headerHeight) * 0.42f;
@@ -59,12 +62,16 @@ final class JoystickView extends View {
         canvas.drawRoundRect(0, 0, width, height, dp(24), dp(24), paint);
 
         paint.setColor(Color.argb(255, 208, 188, 255));
-        canvas.drawRoundRect(dp(12), dp(8), width - dp(12), headerHeight - dp(4), dp(10), dp(10), paint);
+        canvas.drawRoundRect(dp(10), dp(7), width - dp(10), headerHeight - dp(4), dp(10), dp(10), paint);
         paint.setColor(Color.rgb(56, 30, 114));
-        paint.setTextAlign(Paint.Align.CENTER);
         paint.setTypeface(Typeface.DEFAULT_BOLD);
-        paint.setTextSize(dp(11));
-        canvas.drawText("DRAG", centerX, dp(22), paint);
+        paint.setTextSize(dp(10));
+        paint.setTextAlign(Paint.Align.CENTER);
+        canvas.drawText("DRAG", width * 0.31f, dp(22), paint);
+        canvas.drawText(movementMode == NativeBridge.MOVEMENT_JOGGING ? "JOG" : "WALK",
+                width * 0.73f, dp(22), paint);
+        paint.setStrokeWidth(dp(1));
+        canvas.drawLine(width * 0.52f, dp(9), width * 0.52f, headerHeight - dp(6), paint);
 
         paint.setColor(Color.argb(150, 208, 188, 255));
         canvas.drawCircle(centerX, centerY, radius, paint);
@@ -83,9 +90,16 @@ final class JoystickView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        float headerHeight = dp(30);
+        float headerHeight = dp(32);
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
+                if (event.getY() <= headerHeight && event.getX() > getWidth() * 0.52f) {
+                    movementMode = movementMode == NativeBridge.MOVEMENT_JOGGING
+                            ? NativeBridge.MOVEMENT_WALKING : NativeBridge.MOVEMENT_JOGGING;
+                    invalidate();
+                    performClick();
+                    return true;
+                }
                 downRawX = event.getRawX();
                 downRawY = event.getRawY();
                 startTranslationX = getTranslationX();
@@ -97,7 +111,7 @@ final class JoystickView extends View {
             case MotionEvent.ACTION_MOVE:
                 if (draggingOverlay) {
                     moveOverlay(event.getRawX() - downRawX, event.getRawY() - downRawY);
-                } else {
+                } else if (moving) {
                     updateJoystick(event.getX(), event.getY(), true);
                 }
                 return true;
@@ -134,7 +148,7 @@ final class JoystickView extends View {
     }
 
     private void updateJoystick(float touchX, float touchY, boolean active) {
-        float headerHeight = dp(30);
+        float headerHeight = dp(32);
         float centerX = getWidth() / 2f;
         float centerY = headerHeight + (getHeight() - headerHeight) / 2f;
         float radius = Math.min(getWidth(), getHeight() - headerHeight) * 0.42f;
@@ -161,9 +175,7 @@ final class JoystickView extends View {
         if (!publishPending.compareAndSet(false, true)) return;
         worker.execute(() -> {
             try {
-                int mode = NativeBridge.lastMovementMode();
-                if (mode != NativeBridge.MOVEMENT_JOGGING) mode = NativeBridge.MOVEMENT_WALKING;
-                new BridgeClient().move(latestX, latestY, mode, latestActive);
+                new BridgeClient().move(latestX, latestY, movementMode, latestActive);
             } finally {
                 publishPending.set(false);
                 if (latestActive) postDelayed(() -> queuePublish(false), 80L);
@@ -175,10 +187,6 @@ final class JoystickView extends View {
         latestX = 0f;
         latestY = 0f;
         latestActive = false;
-        worker.execute(() -> {
-            int mode = NativeBridge.lastMovementMode();
-            if (mode == NativeBridge.MOVEMENT_NONE) mode = NativeBridge.MOVEMENT_WALKING;
-            new BridgeClient().move(0f, 0f, mode, false);
-        });
+        worker.execute(() -> new BridgeClient().move(0f, 0f, movementMode, false));
     }
 }
