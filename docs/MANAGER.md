@@ -8,7 +8,7 @@ The parasitic manager is a required RC2 component, not an optional follow-up. RC
 - host the manager through the specialized `com.android.shell` process
 - present a Material 3 interface with dynamic system colors and dark-mode support
 - keep location virtualization state independent from the manager UI lifecycle
-- never force-stop, kill, or restart `com.android.shell`, `system_server`, or zygote
+- restart only `com.android.shell` when explicitly opening the parasitic manager; never restart `system_server` or zygote
 - fail safely: manager bootstrap failure must leave virtualization unchanged and must not destabilize Android
 
 ## Process boundary
@@ -129,7 +129,7 @@ The manager must expose:
 - disable GeoVeil for the next reboot by creating Magisk's module `disable` marker through the root companion
 - view or export GeoVeil-owned logs without scanning unrelated private application data
 
-The manager must not offer Watchdog modification, Rescue Party suppression, `system_server` restart, zygote restart, Shell force-stop, cache wipe, or telephony repair actions.
+The manager must not offer Watchdog modification, Rescue Party suppression, `system_server` restart, zygote restart, cache wipe, or telephony repair actions. The module Action may perform the single Shell-host restart required to create a fresh parasitic-manager process.
 
 ## Security and privacy
 
@@ -146,7 +146,7 @@ The manager portion of RC2 is blocked until all of these pass on the target Andr
 - launch from Magisk Action on repeated attempts
 - launch when the shell process is subject to expected Magisk denylist/mount conditions
 - no launcher-visible installed manager package
-- no `com.android.shell` death or forced restart
+- one verified `com.android.shell` restart on explicit manager launch, with no repeated restart loop
 - manager close/reopen preserves the intended state
 - invalid coordinate input cannot reach the native state snapshot
 - dynamic color, dark mode, filled fields, and inline errors render correctly

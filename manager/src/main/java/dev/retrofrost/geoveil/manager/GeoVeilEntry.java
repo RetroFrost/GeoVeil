@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.Window;
 import android.widget.LinearLayout;
 
+import java.io.FileOutputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public final class GeoVeilEntry {
     public static final String LAUNCH_CATEGORY = "dev.retrofrost.geoveil.LAUNCH_MANAGER";
     private static final String SHELL_PACKAGE = "com.android.shell";
+    private static final String READY_MARKER = "/data/local/tmp/geoveil/manager.ready";
     private static final AtomicBoolean INSTALLED = new AtomicBoolean(false);
     private static final Object DECOR_TAG = "geoveil-manager-attached-v2";
 
@@ -56,6 +58,17 @@ public final class GeoVeilEntry {
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT));
         activity.setContentView(container);
+        markReadyBestEffort();
+    }
+
+    private static void markReadyBestEffort() {
+        try (FileOutputStream output = new FileOutputStream(READY_MARKER, false)) {
+            output.write(1);
+            output.flush();
+        } catch (Throwable ignored) {
+            // The UI must remain usable even if the Action-side readiness marker
+            // cannot be written on a heavily restricted ROM.
+        }
     }
 
     /** Covers the race where the Shell trampoline created before callbacks registered. */

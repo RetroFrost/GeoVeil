@@ -74,7 +74,7 @@ StateV1
 
 Virtualization starts disabled. Enabling requires a valid latitude in `[-90, 90]` and longitude in `[-180, 180]`. Empty, malformed, NaN, infinite, incomplete, or out-of-range state is rejected before publication.
 
-Disabling changes state only; it never unloads native code, unhooks ART, restarts `system_server`, or force-stops `com.android.shell`.
+Disabling changes state only; it never unloads native code, unhooks ART, or restarts `system_server`. Opening the parasitic manager separately restarts only its `com.android.shell` UI host so a fresh Zygisk specialization can occur.
 
 ## RC2 parasitic manager
 
@@ -89,7 +89,7 @@ Core properties:
 - manager UI writes validated state through the companion bridge
 - no direct synchronous manager-to-`system_server` calls
 - manager close or crash does not change engine state
-- no forced Shell restart or death
+- one bounded Shell-host restart when explicitly opening the manager; no `system_server` or zygote restart
 - Material 3 filled fields, dynamic color, dark mode, inline validation, and Material Symbols Outlined
 - optional joystick, Easy Location Switch, altitude, speed, bearing, accuracy, and fail-open network-metadata controls
 

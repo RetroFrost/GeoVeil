@@ -59,6 +59,13 @@ require_text 'com.android.shell/.BugreportWarningActivity' module/action.sh \
   "Shell trampoline component is missing"
 require_text '-f 0x10000000' module/action.sh \
   "Magisk Action must pass FLAG_ACTIVITY_NEW_TASK using Android 16 intent syntax"
+require_text '/system/bin/am force-stop --user "$USER_ID" com.android.shell' module/action.sh \
+  "parasitic manager launch must restart only its Shell UI host"
+require_text 'READY_MARKER=$RUNTIME_DIR/manager.ready' module/action.sh \
+  "Magisk Action must verify that GeoVeil replaced the Shell activity"
+require_text 'new FileOutputStream(READY_MARKER, false)' \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java \
+  "manager does not publish its verified attach marker"
 if grep -Fq -- '--activity-new-task' module/action.sh; then
   fail "unsupported am start option --activity-new-task is forbidden"
 fi
@@ -131,7 +138,6 @@ patterns=(
   '/efs([/"[:space:]]|$)'
   '/persist([/"[:space:]]|$)'
   '/dev/block([/"[:space:]]|$)'
-  'force-stop[[:space:]]+com\.android\.shell'
   'kill(all)?[[:space:]]+system_server'
   'kill(all)?[[:space:]]+zygote'
   'setprop[[:space:]]+'

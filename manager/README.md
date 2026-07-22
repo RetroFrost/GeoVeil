@@ -21,7 +21,7 @@ Current limitation: the central `system_server` location engine and root bridge 
 Implementation rules retained:
 
 - no manager loading during zygote or pre-specialization callbacks
-- no force-stop, kill, or restart of `com.android.shell`
+- one targeted `com.android.shell` restart when opening the parasitic manager; no `system_server` or zygote restart
 - no synchronous bridge calls on the UI thread
 - no direct synchronous calls from the manager into `system_server`
 - closing or crashing the manager does not change the engine state

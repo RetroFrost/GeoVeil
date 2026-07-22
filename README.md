@@ -25,7 +25,7 @@ GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing And
 - No Android test provider, Developer Options mock app, `Settings.Secure` mock path, or mock-flag override is used.
 - No Watchdog or Rescue Party modification.
 - No telephony, IMEI, EFS, modem, RIL, IMS, SIM, call, SMS, mobile-data, vendor-radio, or block-device access.
-- No framework partition replacement, custom kernel component, Shell force-stop, or framework restart.
+- No framework partition replacement, custom kernel component, or framework/zygote restart. Opening the parasitic manager performs one targeted restart of `com.android.shell` so Zygisk can inject the fresh host process.
 - Hook or compatibility failure is fail-open and restores genuine-location delivery.
 
 ## Validation status

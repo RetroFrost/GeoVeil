@@ -50,7 +50,7 @@ RC2 is the first milestone intended to implement GeoVeil's complete user-facing 
 - launched from Magisk's GeoVeil module Action
 - hosted through the specialized `com.android.shell` child
 - no separately installed launcher-visible manager package
-- no force-stop, kill, or restart of `com.android.shell`
+- a targeted `com.android.shell` restart is allowed only when explicitly opening the parasitic manager
 - filled Material 3 coordinate fields with inline animated validation
 - Material You dynamic colors, light/dark themes, rounded surfaces, and Material Symbols Outlined
 - remembered coordinates while virtualization remains disabled by default
@@ -99,7 +99,7 @@ RC2 must not be published as working until all of the following are true:
 - hook installation is all-or-nothing
 - hook paths use only bounded, nonblocking state reads
 - the manager opens reliably from Magisk Action without a separate launcher package
-- the manager and joystick work without killing or restarting `com.android.shell`
+- the manager verifies successful attachment after one bounded `com.android.shell` restart
 - manager close, reopen, and deliberate failure do not destabilize `system_server`
 - invalid input cannot reach the companion's published state snapshot
 - Google Maps and fused-location consumers observe the intended coherent location state
