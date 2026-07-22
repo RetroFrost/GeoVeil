@@ -1,0 +1,42 @@
+name: Build GeoAvil APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [geoavil-actions]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+      - name: Prepare FakeGPS source
+        run: |
+          git clone --depth 1 https://github.com/xiangtailiang/FakeGPS.git geoavil
+          git -C geoavil apply --binary ../geoavil.patch
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;android-34" "build-tools;34.0.0"
+      - name: Build GeoAvil
+        working-directory: geoavil
+        run: ./gradlew :app:assembleDebug
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: GeoAvil-mock-status-tester
+          path: geoavil/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
+          retention-days: 30
