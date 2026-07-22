@@ -65,10 +65,7 @@ final class EasyLocationController implements ClipboardManager.OnPrimaryClipChan
 
         worker.execute(() -> {
             BridgeClient.Result probe = bridge.probe();
-            if (!probe.success
-                    || (probe.flags & NativeBridge.FLAG_ENABLED) == 0
-                    || !probe.engineReady()
-                    || probe.emergencyDisabled()) {
+            if (!probe.success || !probe.engineReady()) {
                 return;
             }
             BridgeClient.Result result = bridge.publish(draft);

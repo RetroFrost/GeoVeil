@@ -1,46 +1,26 @@
 # GeoVeil
 
-GeoVeil is an experimental Magisk + Zygisk module for centrally virtualizing Android's framework-visible location state.
+GeoVeil is an experimental Android 16 **LSPosed** location-virtualization module with a normal launcher-visible manager APK.
 
-> **Status:** the RC2 development source contains the central `system_server` delivery engine, root companion, lock-free shared state, one-crash fuse, standalone manager app, Easy Location Switch, and foreground joystick. CI builds and packages the implementation successfully. It is still unvalidated on the target device and is not a proven safe release.
+## What this build does
 
-## Current implementation
+- uses the official libxposed module API and LSPosed remote preferences; it has no Magisk Action, Zygisk companion, `su` shell, or custom root daemon;
+- installs only inside apps you explicitly select for GeoVeil in LSPosed;
+- intercepts `Location` latitude, longitude, altitude, speed, bearing, and accuracy reads, plus `LocationManager.getLastKnownLocation` results, in those target processes;
+- applies manager changes live through LSPosed shared preferences—no target-app force-stop or Android framework restart;
+- parses a copied Maps coordinate pair or URL;
+- provides an optional in-app D-pad joystick inside selected target activities, without the Android system-overlay permission.
 
-- `system_server` connects to the Zygisk root companion before specialization and performs heavy initialization only after specialization.
-- The engine probes the exact Android 16 delivery transport classes and commits all three LSPlant hooks only when every required class, method, DEX helper, and `Location` API is available.
-- Framework-delivered `LocationResult` objects are copied, rewritten coherently, and rebuilt through Android 16's `LocationResult.wrap(List)` factory.
-- Disabled, invalid, incompatible, stale, or emergency state returns the original genuine-location object unchanged.
-- A memfd-backed seqlock snapshot keeps location callbacks free of file reads, socket waits, and process-shared locks.
-- The root companion validates every state generation and handles static coordinates, walking/jogging movement, joystick deltas, recovery, and module-disable requests.
-- An unfinished hook-install marker causes a replacement `system_server` to enter emergency pass-through rather than installing the hooks again.
-- The Magisk late-start monitor observes the guarded `system_server` PID without killing or restarting any process.
-- The manager is a normal launcher-visible APK in `dev.retrofrost.geoveil.manager`; it requests Magisk root and invokes the module-owned `geoveilctl` helper.
-- A copied Maps coordinate pair or URL can populate both validated coordinate fields without manual splitting.
-- The manager includes filled coordinate fields, dynamic system colors, validation, remembered drafts, altitude/speed/bearing/accuracy controls, Easy Location Switch, recovery controls, and a movement panel.
-- A movable 360-degree joystick is injected into the foreground top application without requesting Android's system-overlay permission; walking and jogging are mutually exclusive.
-- The module packages raw `classes.dex` for `system_server` separately from the runtime archive used by the foreground joystick overlay.
+## Install
 
-## Safety boundary
+1. Install and activate LSPosed for the same Magisk environment.
+2. Install `GeoVeil-LSPosed.apk`.
+3. In LSPosed, enable GeoVeil and select only the apps whose location view you want to virtualize.
+4. Open GeoVeil, confirm **LSPosed connected**, paste coordinates, and enable Virtual location.
+5. Reopen a selected target app after enabling the joystick.
 
-- Virtualization and Easy Location Switch start disabled.
-- No Android test provider, Developer Options mock app, `Settings.Secure` mock path, or mock-flag override is used.
-- No Watchdog or Rescue Party modification.
-- No telephony, IMEI, EFS, modem, RIL, IMS, SIM, call, SMS, mobile-data, vendor-radio, or block-device access.
-- No framework partition replacement, custom kernel component, Shell force-stop, or framework/zygote restart. Opening the standalone manager launches only its own application process.
-- Hook or compatibility failure is fail-open and restores genuine-location delivery.
+This is scoped app-process virtualization, not a system GPS replacement. Apps outside the selected LSPosed scope continue to receive genuine location. No Android mock provider, Developer Options mock-location setting, telephony/IMEI, modem, EFS, partition, Watchdog, Rescue Party, `system_server`, zygote, or Shell manipulation is included.
 
-## Validation status
+## Status
 
-The API 36 standalone manager APK, root control executable, runtime DEX, arm64 Zygisk library, companion export, source guard, ZIP layout, and checksums build successfully in GitHub Actions. The APK and module must come from the same build. That does **not** prove device behavior. RC2 remains blocked on cold/warm boot tests, deliberate `system_server` failure recovery, manager and joystick cycles, framework/fused-location verification, Google Maps behavior, disable restoration, and calls/SMS/data/SIM/IMEI/connectivity regression testing.
-
-The optional Wi-Fi and Bluetooth metadata sanitizers described in the roadmap are not included in this location-engine branch; they require separate compatibility probes and may not be added to the release until they can remain completely fail-open and connectivity-neutral.
-
-See [`docs/ROADMAP.md`](docs/ROADMAP.md) and [`docs/MANAGER.md`](docs/MANAGER.md) for the release gates.
-
-## Target
-
-Initial target: arm64, Android 16 / API 36, Magisk 30.7 with Zygisk enabled. The native library uses Android API 35 as its NDK minimum because NDK r29 exposes native platforms through API 35; Java/framework compatibility is compiled and probed against API 36.
-
-## License
-
-The current manager implementation is original GeoVeil code and does not copy ReLSPosed source. A project license must still be finalized before importing or adapting GPL-covered ReLSPosed code. Pinned LSPlant and Dobby sources retain their upstream license notices and build lock data.
+The APK source and packaging are validated in CI. Device behavior still needs Android 16 validation across the target apps, location APIs, and OEM build before claiming broad compatibility.

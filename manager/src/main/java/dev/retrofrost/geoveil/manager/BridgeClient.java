@@ -1,197 +1,93 @@
 package dev.retrofrost.geoveil.manager;
 
+import android.content.SharedPreferences;
 import android.os.SystemClock;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Bounded client using root control in the manager and JNI inside injected overlays. */
+/** LSPosed remote-preference client. No su shell, Magisk action, or native companion is used. */
 final class BridgeClient {
-    private static final AtomicLong GENERATION = new AtomicLong(
-            Math.max(1L, SystemClock.elapsedRealtimeNanos()));
-    private final boolean rootTransport;
-    private final RootBridge rootBridge;
+    private static final AtomicLong GENERATION = new AtomicLong(SystemClock.elapsedRealtimeNanos());
 
-    BridgeClient() {
-        this(false);
-    }
-
-    BridgeClient(boolean rootTransport) {
-        this.rootTransport = rootTransport;
-        rootBridge = rootTransport ? new RootBridge() : null;
-    }
+    BridgeClient() {}
+    BridgeClient(boolean ignoredLegacyArgument) {}
 
     Result probe() {
-        return decode(rootTransport ? rootBridge.probe() : NativeBridge.safeProbe());
+        try {
+            SharedPreferences prefs = RemoteState.preferences();
+            if (prefs == null) return Result.error("LSPosed is not connected. Enable GeoVeil in LSPosed, then reopen this app.", 0);
+            int flags = prefs.getBoolean(RemoteState.ENABLED, false) ? NativeBridge.FLAG_ENABLED : 0;
+            if (prefs.getBoolean(RemoteState.HAS_COORDINATES, false)) flags |= NativeBridge.FLAG_HAS_COORDINATES;
+            flags |= NativeBridge.FLAG_ENGINE_READY;
+            return Result.ok(prefs.getLong(RemoteState.GENERATION, 0L), flags);
+        } catch (Throwable t) {
+            return Result.error("LSPosed service is unavailable: " + safeMessage(t), 0);
+        }
     }
 
     Result publish(GeoState state) {
-        int currentFlags = lastFlags();
-        int currentMovement = lastMovementMode();
-        if (state.movementMode == NativeBridge.MOVEMENT_NONE) {
-            state.movementMode = currentMovement == NativeBridge.MOVEMENT_JOGGING
-                    ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
-        }
-        // The main coordinate form does not own the overlay controls. Preserve the
-        // current companion state unless the movement panel explicitly changes it.
-        if ((currentFlags & NativeBridge.FLAG_JOYSTICK_ENABLED) != 0) {
-            state.joystickEnabled = true;
-        }
-
         GeoState.Validation validation = state.validate();
-        if (!validation.valid) {
-            return Result.error(validation.message, currentFlags);
+        if (!validation.valid) return Result.error(validation.message, lastFlags());
+        try {
+            long generation = nextGeneration();
+            RemoteState.write(state, generation);
+            int flags = NativeBridge.FLAG_ENGINE_READY;
+            if (state.enabled) flags |= NativeBridge.FLAG_ENABLED;
+            if (state.hasCoordinates) flags |= NativeBridge.FLAG_HAS_COORDINATES;
+            return Result.ok(generation, flags);
+        } catch (Throwable t) {
+            return Result.error("Could not write shared LSPosed state: " + safeMessage(t), 0);
         }
-
-        int flags = 0;
-        if (state.enabled) flags |= NativeBridge.FLAG_ENABLED;
-        if (state.hasCoordinates) flags |= NativeBridge.FLAG_HAS_COORDINATES;
-        if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
-        if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
-        if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
-
-        long generation = nextGeneration();
-        long result = publishRaw(
-                generation,
-                flags,
-                state.movementMode,
-                state.latitude,
-                state.longitude,
-                state.altitude,
-                state.speed,
-                state.bearing,
-                state.accuracy);
-        return decode(result);
     }
 
     Result publishMovement(GeoState state, boolean enabled, int movementMode) {
-        state.enabled = (lastFlags() & NativeBridge.FLAG_ENABLED) != 0;
         state.joystickEnabled = enabled;
         state.movementMode = movementMode == NativeBridge.MOVEMENT_JOGGING
                 ? NativeBridge.MOVEMENT_JOGGING : NativeBridge.MOVEMENT_WALKING;
-        GeoState.Validation validation = state.validate();
-        if (!validation.valid) {
-            return Result.error(validation.message, lastFlags());
-        }
-
-        int flags = 0;
-        if (state.enabled) flags |= NativeBridge.FLAG_ENABLED;
-        if (state.hasCoordinates) flags |= NativeBridge.FLAG_HAS_COORDINATES;
-        if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
-        if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
-        if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
-        long result = publishRaw(
-                nextGeneration(), flags, state.movementMode,
-                state.latitude, state.longitude, state.altitude,
-                state.speed, state.bearing, state.accuracy);
-        return decode(result);
+        return publish(state);
     }
 
     Result move(float normalizedX, float normalizedY, int movementMode, boolean active) {
-        long generation = nextGeneration();
-        long result = rootTransport ? -6L : NativeBridge.safeMove(
-                generation,
-                normalizedX,
-                normalizedY,
-                movementMode,
-                active,
-                SystemClock.elapsedRealtimeNanos());
-        return decode(result);
+        return Result.error("Use the in-app LSPosed joystick in a selected target app.", lastFlags());
     }
 
-    Result clearEmergency() {
-        return decode(rootTransport
-                ? rootBridge.clearEmergency() : NativeBridge.safeClearEmergency());
-    }
-
-    Result disableModule() {
-        return decode(rootTransport
-                ? rootBridge.disableModule() : NativeBridge.safeDisableModule());
-    }
+    Result clearEmergency() { return Result.ok(nextGeneration(), lastFlags()); }
+    Result disableModule() { return Result.error("Disable GeoVeil from LSPosed Modules.", lastFlags()); }
 
     int lastFlags() {
-        return rootTransport ? rootBridge.lastFlags() : NativeBridge.safeLastFlags();
+        Result result = probe();
+        return result.flags;
     }
 
     int lastMovementMode() {
-        return rootTransport
-                ? rootBridge.lastMovementMode() : NativeBridge.safeLastMovementMode();
-    }
-
-    private long publishRaw(
-            long generation,
-            int flags,
-            int movementMode,
-            double latitude,
-            double longitude,
-            double altitude,
-            float speed,
-            float bearing,
-            float accuracy) {
-        return rootTransport
-                ? rootBridge.publish(generation, flags, movementMode, latitude, longitude,
-                        altitude, speed, bearing, accuracy)
-                : NativeBridge.safePublish(generation, flags, movementMode, latitude, longitude,
-                        altitude, speed, bearing, accuracy);
+        try {
+            SharedPreferences prefs = RemoteState.preferences();
+            return prefs == null ? NativeBridge.MOVEMENT_WALKING
+                    : prefs.getInt(RemoteState.MOVEMENT_MODE, NativeBridge.MOVEMENT_WALKING);
+        } catch (Throwable ignored) { return NativeBridge.MOVEMENT_WALKING; }
     }
 
     private static long nextGeneration() {
         for (;;) {
             long current = GENERATION.get();
-            long clock = Math.max(1L, SystemClock.elapsedRealtimeNanos());
-            long next = Math.max(current + 1L, clock);
+            long next = Math.max(current + 1L, SystemClock.elapsedRealtimeNanos());
             if (GENERATION.compareAndSet(current, next)) return next;
         }
     }
-
-    private Result decode(long value) {
-        int flags = lastFlags();
-        if (value >= 0L) return Result.ok(value, flags);
-        String message;
-        if (value == -2L) {
-            message = "Engine bridge schema is incompatible with this manager.";
-        } else if (value == -3L) {
-            message = "The engine rejected an invalid coordinate state.";
-        } else if (value == -4L) {
-            message = "The engine rejected an older state generation; retry the action.";
-        } else if (value == -5L) {
-            message = "Emergency pass-through is active. GeoVeil will not install hooks.";
-        } else if (value == -7L) {
-            message = "The location engine is not ready; genuine location remains active.";
-        } else {
-            message = rootTransport
-                    ? "Root access or the GeoVeil module control helper is unavailable."
-                    : "The overlay bridge is unavailable; genuine location remains active.";
-        }
-        return Result.error(message, flags);
+    private static String safeMessage(Throwable t) {
+        String message = t.getMessage(); return message == null ? t.getClass().getSimpleName() : message;
     }
 
     static final class Result {
-        final boolean success;
-        final long generation;
-        final int flags;
-        final String message;
-
+        final boolean success; final long generation; final int flags; final String message;
         private Result(boolean success, long generation, int flags, String message) {
-            this.success = success;
-            this.generation = generation;
-            this.flags = flags;
-            this.message = message;
+            this.success = success; this.generation = generation; this.flags = flags; this.message = message;
         }
-
-        boolean engineReady() {
-            return (flags & NativeBridge.FLAG_ENGINE_READY) != 0;
-        }
-
-        boolean emergencyDisabled() {
-            return (flags & NativeBridge.FLAG_EMERGENCY_DISABLE) != 0;
-        }
-
+        boolean engineReady() { return (flags & NativeBridge.FLAG_ENGINE_READY) != 0; }
+        boolean emergencyDisabled() { return false; }
         static Result ok(long generation, int flags) {
-            return new Result(true, generation, flags, "State accepted by the root companion.");
+            return new Result(true, generation, flags, "State saved to LSPosed remote preferences.");
         }
-
-        static Result error(String message, int flags) {
-            return new Result(false, -1L, flags, message);
-        }
+        static Result error(String message, int flags) { return new Result(false, -1L, flags, message); }
     }
 }

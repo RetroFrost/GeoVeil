@@ -12,7 +12,7 @@ final class DraftStore {
     static GeoState load(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
         GeoState state = new GeoState();
-        state.enabled = false;
+        state.enabled = preferences.getBoolean("enabled", false);
         state.hasCoordinates = preferences.getBoolean("has_coordinates", false);
         state.latitude = Double.longBitsToDouble(preferences.getLong("latitude", 0L));
         state.longitude = Double.longBitsToDouble(preferences.getLong("longitude", 0L));
@@ -34,6 +34,7 @@ final class DraftStore {
     static void save(Context context, GeoState state) {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
                 .edit()
+                .putBoolean("enabled", state.enabled)
                 .putBoolean("has_coordinates", state.hasCoordinates)
                 .putLong("latitude", Double.doubleToRawLongBits(state.latitude))
                 .putLong("longitude", Double.doubleToRawLongBits(state.longitude))

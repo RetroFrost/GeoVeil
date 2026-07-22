@@ -1,4 +1,4 @@
-name: Build GeoVeil
+name: Build GeoVeil LSPosed
 
 on:
   workflow_dispatch:
@@ -9,203 +9,45 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 env:
-  NDK_VERSION: 29.0.14206865
   ANDROID_PLATFORM: android-36
-  NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
-
+    timeout-minutes: 20
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Run source safety guard
-        shell: bash
-        run: bash scripts/source-guard.sh
-
+      - uses: actions/checkout@v4
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Install API 36, NDK, and packaging tools
-        shell: bash
+      - name: Install API 36 and build tools
         run: |
-          set -euo pipefail
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
-          sdkmanager \
-            "platforms;${ANDROID_PLATFORM}" \
-            "build-tools;${BUILD_TOOLS_VERSION}" \
-            "ndk;${NDK_VERSION}" >/dev/null 2>&1
-          sudo apt-get update -qq >/dev/null
-          sudo apt-get install --yes -qq ninja-build zip >/dev/null
-          cmake --version
-
+          sdkmanager "platforms;${ANDROID_PLATFORM}" "build-tools;${BUILD_TOOLS_VERSION}" >/dev/null
+      - name: Run LSPosed source guard
+        run: bash scripts/source-guard.sh
       - name: Restore development APK signing key
         uses: actions/cache@v4
         with:
           path: manager/.signing
-          key: geoveil-development-apk-signing-v1
-
-      - name: Build standalone manager APK, engine helper, and joystick DEX archive
-        shell: bash
+          key: geoveil-lsposed-development-apk-signing-v1
+      - name: Build signed LSPosed APK
+        run: bash manager/build-manager.sh
+      - name: Verify LSPosed package metadata
         run: |
-          set +e
-          bash manager/build-manager.sh >manager-build.log 2>&1
-          status=$?
-          cat manager-build.log
-          if [ "$status" -ne 0 ]; then
-            echo "::error::Manager and engine DEX build failed"
-            exit "$status"
-          fi
-          set -euo pipefail
-          test -s manager/build/manager.apk
-          test -s manager/build/GeoVeil-Manager-standalone.apk
-          test -s manager/build/dex/classes.dex
-          test "$(head -c 3 manager/build/dex/classes.dex)" = "dex"
-          unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
-          grep -q 'classes.dex' manager/build/verified-contents.txt
-          "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" verify --verbose \
-            manager/build/GeoVeil-Manager-standalone.apk
-          grep -q "launchable-activity: name='dev.retrofrost.geoveil.manager.MainActivity'" \
-            manager/build/standalone-badging.txt
-
-      - name: Report focused manager compiler error
-        if: failure() && github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          {
-            echo '### RC2 Java compiler output'
-            echo
-            echo '```text'
-            tail -n 160 manager-build.log 2>/dev/null || echo 'manager-build.log was not created'
-            echo '```'
-          } > manager-build-comment.md
-          gh pr comment "$PR_NUMBER" --body-file manager-build-comment.md
-
-      - name: Fetch pinned Zygisk and ART hook sources
-        shell: bash
-        run: |
-          set -euo pipefail
-          bash scripts/fetch-zygisk-header.sh
-          bash scripts/fetch-hook-deps.sh
-          cat native/third_party/hook-dependencies.lock
-
-      - name: Compile arm64 Zygisk payload
-        shell: bash
-        run: |
-          set +e
-          NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
-          {
-            cmake -S native -B build/native -G Ninja \
-              -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-              -DANDROID_ABI=arm64-v8a \
-              -DANDROID_PLATFORM="${NATIVE_PLATFORM}" \
-              -DANDROID_STL=c++_static \
-              -DCMAKE_BUILD_TYPE=Release
-            cmake --build build/native --parallel 2
-          } >native-build.log 2>&1
-          status=$?
-          cat native-build.log
-          if [ "$status" -ne 0 ]; then
-            echo "::error::Native Zygisk build failed"
-            exit "$status"
-          fi
-
-      - name: Report focused native compiler error
-        if: failure() && github.event_name == 'pull_request'
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: |
-          {
-            echo '### RC2 native compiler output'
-            echo
-            echo '```text'
-            tail -n 200 native-build.log 2>/dev/null || echo 'native-build.log was not created'
-            echo '```'
-          } > native-build-comment.md
-          gh pr comment "$PR_NUMBER" --body-file native-build-comment.md
-
-      - name: Validate native payload
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s build/native/libgeoveil.so
-          test -s build/native/geoveilctl
-          file build/native/libgeoveil.so | tee build/native/file.txt
-          file build/native/geoveilctl | tee build/native/control-file.txt
-          readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
-          readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
-          grep -q 'zygisk_module_entry' build/native/symbols.txt
-          grep -q 'zygisk_companion_entry' build/native/symbols.txt
-          ! grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt
-
-      - name: Package RC2 development Magisk ZIP
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -rf out
-          mkdir -p out/stage/zygisk out/stage/bin
-          cp -a module/. out/stage/
-          # system_server receives a raw DEX through InMemoryDexClassLoader.
-          cp manager/build/dex/classes.dex out/stage/manager.apk
-          # Top-app joystick overlays receive an APK/ZIP through PathClassLoader.
-          cp manager/build/manager.apk out/stage/manager-ui.apk
-          cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
-          cp build/native/geoveilctl out/stage/bin/geoveilctl
-          find out/stage -type d -exec chmod 0755 {} +
-          find out/stage -type f -exec chmod 0644 {} +
-          chmod 0755 \
-            out/stage/customize.sh \
-            out/stage/cleanup-legacy.sh \
-            out/stage/service.sh \
-            out/stage/action.sh
-          chmod 0755 out/stage/bin/geoveilctl
-          test "$(head -c 3 out/stage/manager.apk)" = "dex"
-          unzip -l out/stage/manager-ui.apk | grep -q 'classes.dex'
-          (
-            cd out/stage
-            zip -9 -r ../GeoVeil-RC2-development.zip .
-          )
-          cd out
-          sha256sum GeoVeil-RC2-development.zip > SHA256SUMS
-          unzip -t GeoVeil-RC2-development.zip
-          unzip -l GeoVeil-RC2-development.zip | tee contents.txt
-          grep -q 'zygisk/arm64-v8a.so' contents.txt
-          grep -q 'bin/geoveilctl' contents.txt
-          grep -q 'manager.apk' contents.txt
-          grep -q 'manager-ui.apk' contents.txt
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
+          unzip -l manager/build/GeoVeil-LSPosed.apk | grep -q 'META-INF/xposed/java_init.list'
+          unzip -p manager/build/GeoVeil-LSPosed.apk META-INF/xposed/java_init.list | grep -q GeoVeilModule
+          "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" verify --verbose manager/build/GeoVeil-LSPosed.apk
+      - uses: actions/upload-artifact@v4
         with:
-          name: GeoVeil-RC2-${{ github.sha }}
+          name: GeoVeil-LSPosed-${{ github.sha }}
           path: |
-            out/GeoVeil-RC2-development.zip
-            out/SHA256SUMS
-            out/contents.txt
-            manager/build/manager.apk
-            manager/build/manager.apk.sha256
-            manager/build/GeoVeil-Manager-standalone.apk
-            manager/build/GeoVeil-Manager-standalone.apk.sha256
-            manager/build/standalone-badging.txt
-            manager/build/standalone-certificates.txt
-            manager/build/dex/classes.dex
-            manager/build/manager-contents.txt
-            native/third_party/hook-dependencies.lock
-            build/native/file.txt
-            build/native/control-file.txt
-            build/native/elf-header.txt
-            build/native/symbols.txt
+            manager/build/GeoVeil-LSPosed.apk
+            manager/build/GeoVeil-LSPosed.apk.sha256
+            manager/build/badging.txt
+            manager/build/certificates.txt
+            manager/build/contents.txt
           if-no-files-found: error
           retention-days: 30

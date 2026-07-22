@@ -95,7 +95,7 @@ final class ManagerScreen extends ScrollView {
         root.setPadding(dp(20), dp(18), dp(20), dp(40));
         addView(root, new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
 
-        TextView eyebrow = text("GEOVEIL RC2", 12, primary, Typeface.BOLD);
+        TextView eyebrow = text("GEOVEIL LSPOSED", 12, primary, Typeface.BOLD);
         eyebrow.setLetterSpacing(0.14f);
         root.addView(eyebrow);
 
@@ -104,7 +104,7 @@ final class ManagerScreen extends ScrollView {
         root.addView(title);
 
         TextView subtitle = text(
-                "Root manager for the GeoVeil Magisk module. Grant Magisk access, paste a Maps coordinate pair, and apply it to the engine.",
+                "LSPosed location manager. Enable GeoVeil and select the apps you want to virtualize in LSPosed, then paste a Maps coordinate pair.",
                 15,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -113,12 +113,12 @@ final class ManagerScreen extends ScrollView {
 
         LinearLayout statusCard = card();
         statusTitle = text("Checking engine", 16, onSurface, Typeface.BOLD);
-        statusDetail = text("Waiting for Magisk root access…", 14, onSurfaceVariant, Typeface.NORMAL);
+        statusDetail = text("Waiting for the LSPosed remote-preferences service…", 14, onSurfaceVariant, Typeface.NORMAL);
         statusDetail.setPadding(0, dp(4), 0, 0);
         statusCard.addView(statusTitle);
         statusCard.addView(statusDetail);
         root.addView(statusCard, spacedMatch());
-        Button retryRoot = button("Retry root connection", false);
+        Button retryRoot = button("Reconnect LSPosed", false);
         retryRoot.setOnClickListener(view -> probeBridge());
         root.addView(retryRoot, spacedMatchSmall());
 
@@ -134,7 +134,7 @@ final class ManagerScreen extends ScrollView {
         enableRow.addView(enabledSwitch);
         enableCard.addView(enableRow);
         TextView enableHelp = text(
-                "Fresh installs start disabled. A coordinate is required before the bridge can enable the engine.",
+                "Only apps selected in LSPosed receive the location hooks. A coordinate is required before enabling virtual location.",
                 13,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -207,7 +207,7 @@ final class ManagerScreen extends ScrollView {
         root.addView(easyCard, spacedMatchSmall());
 
         TextView safety = text(
-                "GeoVeil does not modify Android Watchdog, Rescue Party, telephony, IMEI, SIM, modem, EFS, partitions, or Developer Options mock-location settings.",
+                "GeoVeil works in LSPosed-selected app processes. It does not change system GPS, mock-location settings, Watchdog, telephony, IMEI, SIM, modem, EFS, or partitions.",
                 12,
                 onSurfaceVariant,
                 Typeface.NORMAL);
@@ -256,7 +256,7 @@ final class ManagerScreen extends ScrollView {
     }
 
     private void probeBridge() {
-        setStatus("Manager ready", "Checking whether the RC2 engine bridge is available…", false);
+        setStatus("Checking LSPosed", "Connecting to LSPosed remote preferences…", false);
         worker.execute(() -> {
             BridgeClient.Result result = bridge.probe();
             BridgeClient.Result finalResult = result;
@@ -265,17 +265,9 @@ final class ManagerScreen extends ScrollView {
                     boolean active = finalResult.engineReady()
                             && (finalResult.flags & NativeBridge.FLAG_ENABLED) != 0;
                     setEnabledSwitch(active);
-                    if (finalResult.emergencyDisabled()) {
-                        setStatus("Emergency pass-through",
-                                "Root is granted, but GeoVeil's safety latch is active.", false);
-                    } else if (!finalResult.engineReady()) {
-                        setStatus("Root granted; engine not ready",
-                                "Wait for engine initialization before enabling a coordinate.", false);
-                    } else {
-                        setStatus(active ? "Virtual location enabled" : "Root module connected",
-                                active ? "The engine accepted an enabled state."
-                                        : "Engine ready; genuine location remains active.", true);
-                    }
+                    setStatus(active ? "Virtual location enabled" : "LSPosed connected",
+                            active ? "Selected apps read the live GeoVeil state."
+                                    : "Select target apps in LSPosed; genuine location remains active until enabled.", true);
                 } else {
                     setStatus("Pass-through mode", finalResult.message, false);
                     setEnabledSwitch(false);
@@ -298,7 +290,7 @@ final class ManagerScreen extends ScrollView {
         }
 
         applyButton.setEnabled(false);
-        setStatus("Applying state", "Waiting for the bounded local bridge response…", false);
+        setStatus("Applying state", "Writing live LSPosed remote preferences…", false);
         worker.execute(() -> {
             BridgeClient.Result result = bridge.publish(parsed.state);
             activity.runOnUiThread(() -> {
@@ -309,7 +301,7 @@ final class ManagerScreen extends ScrollView {
                     setStatus(mode, parsed.state.coordinateSummary(), true);
                 } else {
                     setEnabledSwitch(false);
-                    setStatus("Pass-through mode", result.message, false);
+                    setStatus("LSPosed unavailable", result.message, false);
                 }
             });
         });

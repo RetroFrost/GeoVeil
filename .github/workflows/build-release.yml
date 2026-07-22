@@ -1,259 +1,29 @@
-name: Build GeoVeil RC2 development release
+name: Build GeoVeil LSPosed release
 
 on:
   workflow_dispatch:
-    inputs:
-      release_tag:
-        description: Development tag, for example v0.2.0-rc.2
-        required: true
-        default: v0.2.0-rc.2
-        type: string
-      publish_prerelease:
-        description: Publish the ZIP as a GitHub prerelease
-        required: true
-        default: false
-        type: boolean
   push:
-    tags:
-      - 'v*-dev.*'
-      - 'v*-rc.*'
+    tags: ['v*-lsposed.*']
 
 permissions:
   contents: write
 
-concurrency:
-  group: geoveil-release-${{ github.ref }}
-  cancel-in-progress: false
-
 env:
-  NDK_VERSION: 27.2.12479018
   ANDROID_PLATFORM: android-36
-  NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
   build:
-    name: Build arm64 RC2 with standalone manager
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-
     steps:
-      - name: Check out source
-        uses: actions/checkout@v4
-
-      - name: Resolve and validate version
-        id: version
-        shell: bash
-        env:
-          INPUT_TAG: ${{ inputs.release_tag }}
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
-            TAG="${GITHUB_REF_NAME}"
-          else
-            TAG="${INPUT_TAG}"
-          fi
-          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(dev|rc)\.[0-9]+$ ]] || {
-            echo "Unsupported development tag: $TAG" >&2
-            exit 1
-          }
-          VERSION="${TAG#v}"
-          SAFE_TAG="${TAG//\//-}"
-          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "archive=GeoVeil-${SAFE_TAG}.zip" >> "$GITHUB_OUTPUT"
-
-      - name: Run source safety guard
-        shell: bash
-        run: bash scripts/source-guard.sh
-
-      - name: Install Android API 36, NDK, and build tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          yes | "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          "${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager" \
-            "platforms;${ANDROID_PLATFORM}" \
-            "build-tools;${BUILD_TOOLS_VERSION}" \
-            "ndk;${NDK_VERSION}" \
-            "cmake;3.22.1"
-          sudo apt-get update
-          sudo apt-get install --yes ninja-build zip
-
-      - name: Restore development APK signing key
-        uses: actions/cache@v4
-        with:
-          path: manager/.signing
-          key: geoveil-development-apk-signing-v1
-
-      - name: Build standalone manager and runtime DEX archive
-        shell: bash
-        run: |
-          set -euo pipefail
+      - uses: actions/checkout@v4
+      - uses: android-actions/setup-android@v3
+      - run: |
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
+          sdkmanager "platforms;${ANDROID_PLATFORM}" "build-tools;${BUILD_TOOLS_VERSION}" >/dev/null
+          bash scripts/source-guard.sh
           bash manager/build-manager.sh
-          test -s manager/build/manager.apk
-          test -s manager/build/GeoVeil-Manager-standalone.apk
-          unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
-          grep -q 'classes.dex' manager/build/verified-contents.txt
-          "${ANDROID_HOME}/build-tools/${BUILD_TOOLS_VERSION}/apksigner" verify --verbose \
-            manager/build/GeoVeil-Manager-standalone.apk
-
-      - name: Fetch pinned Zygisk and ART hook sources
-        shell: bash
-        run: |
-          bash scripts/fetch-zygisk-header.sh
-          bash scripts/fetch-hook-deps.sh
-
-      - name: Compile arm64 Zygisk library
-        shell: bash
-        run: |
-          set -euo pipefail
-          NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
-          CMAKE="${ANDROID_HOME}/cmake/3.22.1/bin/cmake"
-          "$CMAKE" -S native -B build/native -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM="${NATIVE_PLATFORM}" \
-            -DANDROID_STL=c++_static \
-            -DCMAKE_BUILD_TYPE=Release
-          "$CMAKE" --build build/native --parallel 2
-
-      - name: Validate native payload
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -s build/native/libgeoveil.so
-          test -s build/native/geoveilctl
-          file build/native/libgeoveil.so | tee build/native/file.txt
-          file build/native/geoveilctl | tee build/native/control-file.txt
-          readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
-          readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
-          grep -q 'zygisk_module_entry' build/native/symbols.txt
-          if grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt; then
-            echo 'Forbidden telephony identifier symbol found' >&2
-            exit 1
-          fi
-
-      - name: Stage Magisk module
-        shell: bash
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          rm -rf dist
-          mkdir -p dist/stage/zygisk dist/stage/bin
-          cp -a module/. dist/stage/
-          cp manager/build/manager.apk dist/stage/manager.apk
-          cp manager/build/manager.apk dist/stage/manager-ui.apk
-          cp build/native/libgeoveil.so dist/stage/zygisk/arm64-v8a.so
-          cp build/native/geoveilctl dist/stage/bin/geoveilctl
-          sed -i "s/^version=.*/version=${VERSION}/" dist/stage/module.prop
-          sed -i "s/^versionCode=.*/versionCode=$((200000 + GITHUB_RUN_NUMBER))/" dist/stage/module.prop
-          find dist/stage -type d -exec chmod 0755 {} +
-          find dist/stage -type f -exec chmod 0644 {} +
-          chmod 0755 \
-            dist/stage/customize.sh \
-            dist/stage/cleanup-legacy.sh \
-            dist/stage/service.sh \
-            dist/stage/action.sh
-          chmod 0755 dist/stage/bin/geoveilctl
-
-      - name: Validate staged module layout
-        shell: bash
-        run: |
-          set -euo pipefail
-          test -f dist/stage/module.prop
-          test -f dist/stage/customize.sh
-          test -f dist/stage/skip_mount
-          test -s dist/stage/manager.apk
-          test -s dist/stage/manager-ui.apk
-          test -s dist/stage/zygisk/arm64-v8a.so
-          test -x dist/stage/bin/geoveilctl
-          unzip -l dist/stage/manager.apk | grep -q 'classes.dex'
-          unzip -l dist/stage/manager-ui.apk | grep -q 'classes.dex'
-          for forbidden in system vendor product system_ext system.prop sepolicy.rule post-fs-data.sh hooks_enabled; do
-            test ! -e "dist/stage/$forbidden" || {
-              echo "Forbidden release path: $forbidden" >&2
-              exit 1
-            }
-          done
-          ! grep -RInE 'add-test-provider|set-test-provider-location|setMock\([[:space:]]*true|Settings\.Secure|/efs|/dev/block|force-stop[[:space:]]+com\.android\.shell' dist/stage
-
-      - name: Package ZIP and checksums
-        id: package
-        shell: bash
-        env:
-          ARCHIVE: ${{ steps.version.outputs.archive }}
-        run: |
-          set -euo pipefail
-          (
-            cd dist/stage
-            zip -9 -r "../${ARCHIVE}" .
-          )
-          cd dist
-          sha256sum "$ARCHIVE" > "${ARCHIVE}.sha256"
-          unzip -t "$ARCHIVE"
-          unzip -l "$ARCHIVE" | tee "${ARCHIVE}.contents.txt"
-          grep -q 'zygisk/arm64-v8a.so' "${ARCHIVE}.contents.txt"
-          grep -q 'bin/geoveilctl' "${ARCHIVE}.contents.txt"
-          grep -q 'manager.apk' "${ARCHIVE}.contents.txt"
-
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: geoveil-${{ steps.version.outputs.tag }}
-          path: |
-            dist/${{ steps.version.outputs.archive }}
-            dist/${{ steps.version.outputs.archive }}.sha256
-            dist/${{ steps.version.outputs.archive }}.contents.txt
-            manager/build/GeoVeil-Manager-standalone.apk
-            manager/build/GeoVeil-Manager-standalone.apk.sha256
-            manager/build/manager.apk
-            manager/build/manager.apk.sha256
-            manager/build/standalone-badging.txt
-            manager/build/standalone-certificates.txt
-            manager/build/manager-contents.txt
-            build/native/file.txt
-            build/native/control-file.txt
-            build/native/elf-header.txt
-            build/native/symbols.txt
-          if-no-files-found: error
-          retention-days: 30
-
-      - name: Publish GitHub prerelease
-        if: github.ref_type == 'tag' || inputs.publish_prerelease == true
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.version.outputs.tag }}
-          ARCHIVE: ${{ steps.version.outputs.archive }}
-        run: |
-          set -euo pipefail
-          cat > dist/release-notes.md <<'NOTES'
-          ## GeoVeil RC2 standalone manager preview
-
-          This automated prerelease contains GeoVeil's standalone manager application:
-
-          - an installable launcher APK using `dev.retrofrost.geoveil.manager`;
-          - Magisk Action launch through the manager's explicit launcher activity;
-          - filled coordinate fields, strict validation, dynamic-color fallbacks, saved drafts, and advanced controls;
-          - a bounded background client for the versioned local state bridge;
-          - a Zygisk-registered local native bridge available only when the matching module is active;
-          - no force-stop or restart of Shell, system_server, or zygote.
-
-          The central `system_server` engine and root companion are included, but this build remains unvalidated on the target device. When no bridge accepts the state, the manager reports pass-through and does not claim that coordinates changed.
-
-          The Java manager targets API 36. The arm64 native library uses NDK r27's supported native API 35 baseline and is packaged only for the installer-enforced Android 16/API 36 target.
-
-          No test provider, Android mock-location setting, Watchdog modification, telephony identifier, EFS, modem, partition, or custom-kernel modification is included. This build must be device-tested before it is described as working.
-          NOTES
-          gh release create "$TAG" \
-            "dist/$ARCHIVE" \
-            "dist/${ARCHIVE}.sha256" \
-            "dist/${ARCHIVE}.contents.txt" \
-            "manager/build/GeoVeil-Manager-standalone.apk" \
-            "manager/build/GeoVeil-Manager-standalone.apk.sha256" \
-            --target "$GITHUB_SHA" \
-            --title "GeoVeil $TAG — RC2 manager preview" \
-            --notes-file dist/release-notes.md \
-            --prerelease
+          name: GeoVeil-LSPosed
+          path: manager/build/GeoVeil-LSPosed.apk
