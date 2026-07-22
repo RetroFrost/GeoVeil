@@ -1,5 +1,6 @@
 #include <sys/types.h>
 
+#include "state_bridge.hpp"
 #include "zygisk.hpp"
 
 #include <atomic>
@@ -35,10 +36,13 @@ public:
     }
 
     void preAppSpecialize(zygisk::AppSpecializeArgs* args) override {
-        // Keep pre-specialization routing intentionally tiny: compare the already
-        // supplied UID and choose whether the library may remain mapped.
+        // Pre-specialization routing remains bounded: compare the supplied UID,
+        // request the root companion once for the Shell host, and unload from all
+        // unrelated application children. DEX loading and UI work happen later.
         is_shell_child_ = args != nullptr && args->uid == kAndroidShellUid;
-        if (!is_shell_child_ && api_ != nullptr) {
+        if (is_shell_child_) {
+            (void)open_companion_channel(api_, CompanionRole::kShellBootstrap);
+        } else if (api_ != nullptr) {
             api_->setOption(zygisk::DLCLOSE_MODULE_LIBRARY);
         }
     }
@@ -57,14 +61,22 @@ public:
     }
 
     void preServerSpecialize(zygisk::ServerSpecializeArgs*) override {
-        // The current system_server payload remains inert. No I/O, allocation,
-        // state parsing, companion connection, or hook work occurs here.
+        // connectCompanion() is only available before specialization. The returned
+        // descriptor is retained, but no state read, hook work, allocation-heavy
+        // initialization, or framework probing occurs in this callback.
+        system_server_channel_ = open_companion_channel(
+                api_, CompanionRole::kSystemServerState);
     }
 
     void postServerSpecialize(const zygisk::ServerSpecializeArgs*) override {
-        // The RC2 location engine is still a release blocker. Until its exact-build
-        // probe, one-crash fuse, and all-or-nothing hook commit are implemented and
-        // tested, system_server remains genuine-location pass-through.
+        // All blocking state-stream work moves to a detached reader. The future
+        // location hook will consume only read_state_snapshot(), never the socket.
+        start_system_server_state_reader(system_server_channel_);
+        system_server_channel_ = -1;
+
+        // The active Android 16 location hook remains a separate release blocker.
+        // Until its exact-build probe, one-crash fuse arming, and all-or-nothing
+        // commit are implemented and device-tested, system_server stays pass-through.
     }
 
 private:
@@ -174,9 +186,11 @@ private:
     zygisk::Api* api_ = nullptr;
     JavaVM* vm_ = nullptr;
     bool is_shell_child_ = false;
+    int system_server_channel_ = -1;
     std::atomic<bool> bootstrap_started_{false};
 };
 
 }  // namespace geoveil
 
 REGISTER_ZYGISK_MODULE(geoveil::GeoVeilModule)
+REGISTER_ZYGISK_COMPANION(geoveil::root_companion_handler)
