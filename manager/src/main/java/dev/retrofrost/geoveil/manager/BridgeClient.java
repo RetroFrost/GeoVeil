@@ -1,111 +1,125 @@
 package dev.retrofrost.geoveil.manager;
 
-import android.net.LocalSocket;
-import android.net.LocalSocketAddress;
+import android.os.SystemClock;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.concurrent.atomic.AtomicLong;
 
-/**
- * Bounded manager-side client for the future root companion bridge.
- *
- * This class never runs on the UI thread. The current no-hook native scaffold does not yet
- * provide the server, so connection failure is reported as pass-through rather than guessed.
- */
+/** Bounded manager-side client backed by the persistent Zygisk companion connection. */
 final class BridgeClient {
-    private static final String SOCKET_NAME = "geoveil.manager.v1";
-    private static final int MAGIC = 0x47565354; // GVST
-    private static final short VERSION = 1;
-    private static final short OP_STATUS = 1;
-    private static final short OP_PUBLISH = 2;
-    private static final short STATUS_OK = 0;
-    private static final AtomicLong GENERATION = new AtomicLong(System.nanoTime());
+    private static final AtomicLong GENERATION = new AtomicLong(
+            Math.max(1L, SystemClock.elapsedRealtimeNanos()));
 
     Result probe() {
-        return transact(OP_STATUS, null);
+        return decode(NativeBridge.probe());
     }
 
     Result publish(GeoState state) {
         GeoState.Validation validation = state.validate();
         if (!validation.valid) {
-            return Result.error(validation.message);
+            return Result.error(validation.message, NativeBridge.lastFlags());
         }
-        return transact(OP_PUBLISH, state);
+
+        int flags = 0;
+        if (state.enabled) flags |= NativeBridge.FLAG_ENABLED;
+        if (state.hasCoordinates) flags |= NativeBridge.FLAG_HAS_COORDINATES;
+        if (state.automaticAltitude) flags |= NativeBridge.FLAG_AUTOMATIC_ALTITUDE;
+        if (state.easyLocationSwitch) flags |= NativeBridge.FLAG_EASY_LOCATION_SWITCH;
+        if (state.joystickEnabled) flags |= NativeBridge.FLAG_JOYSTICK_ENABLED;
+
+        long generation = nextGeneration();
+        long result = NativeBridge.publish(
+                generation,
+                flags,
+                state.movementMode,
+                state.latitude,
+                state.longitude,
+                state.altitude,
+                state.speed,
+                state.bearing,
+                state.accuracy);
+        return decode(result);
     }
 
-    private Result transact(short operation, GeoState state) {
-        LocalSocket socket = new LocalSocket();
-        try {
-            socket.setSoTimeout(750);
-            socket.connect(new LocalSocketAddress(
-                    SOCKET_NAME,
-                    LocalSocketAddress.Namespace.ABSTRACT));
+    Result move(float normalizedX, float normalizedY, int movementMode, boolean active) {
+        long generation = nextGeneration();
+        long result = NativeBridge.move(
+                generation,
+                normalizedX,
+                normalizedY,
+                movementMode,
+                active,
+                SystemClock.elapsedRealtimeNanos());
+        return decode(result);
+    }
 
-            DataOutputStream output = new DataOutputStream(socket.getOutputStream());
-            long generation = GENERATION.incrementAndGet();
-            output.writeInt(MAGIC);
-            output.writeShort(VERSION);
-            output.writeShort(operation);
-            output.writeLong(generation);
+    Result clearEmergency() {
+        return decode(NativeBridge.clearEmergency());
+    }
 
-            if (operation == OP_PUBLISH && state != null) {
-                int flags = 0;
-                if (state.enabled) flags |= 1;
-                if (state.hasCoordinates) flags |= 1 << 1;
-                if (state.automaticAltitude) flags |= 1 << 2;
-                if (state.easyLocationSwitch) flags |= 1 << 3;
-                output.writeInt(flags);
-                output.writeDouble(state.latitude);
-                output.writeDouble(state.longitude);
-                output.writeDouble(state.altitude);
-                output.writeFloat(state.speed);
-                output.writeFloat(state.bearing);
-                output.writeFloat(state.accuracy);
-            }
-            output.flush();
+    Result disableModule() {
+        return decode(NativeBridge.disableModule());
+    }
 
-            DataInputStream input = new DataInputStream(socket.getInputStream());
-            if (input.readInt() != MAGIC) {
-                return Result.error("Engine bridge returned an invalid response.");
-            }
-            if (input.readShort() != VERSION) {
-                return Result.error("Engine bridge schema is incompatible.");
-            }
-            short status = input.readShort();
-            long acceptedGeneration = input.readLong();
-            if (status != STATUS_OK) {
-                return Result.error("Engine bridge rejected the requested state.");
-            }
-            return Result.ok(acceptedGeneration);
-        } catch (IOException ignored) {
-            return Result.error("Engine bridge is unavailable; GeoVeil remains in pass-through mode.");
-        } finally {
-            try {
-                socket.close();
-            } catch (IOException ignored) {
+    private static long nextGeneration() {
+        for (;;) {
+            long current = GENERATION.get();
+            long clock = Math.max(1L, SystemClock.elapsedRealtimeNanos());
+            long next = Math.max(current + 1L, clock);
+            if (GENERATION.compareAndSet(current, next)) {
+                return next;
             }
         }
+    }
+
+    private static Result decode(long value) {
+        int flags = NativeBridge.lastFlags();
+        if (value >= 0L) {
+            return Result.ok(value, flags);
+        }
+        String message;
+        if (value == -2L) {
+            message = "Engine bridge schema is incompatible with this manager.";
+        } else if (value == -3L) {
+            message = "The engine rejected an invalid coordinate state.";
+        } else if (value == -4L) {
+            message = "The engine rejected an older state generation; retry the action.";
+        } else if (value == -5L) {
+            message = "Emergency pass-through is active. GeoVeil will not install hooks.";
+        } else if (value == -7L) {
+            message = "The location engine is not ready; genuine location remains active.";
+        } else {
+            message = "The root companion connection is unavailable; genuine location remains active.";
+        }
+        return Result.error(message, flags);
     }
 
     static final class Result {
         final boolean success;
         final long generation;
+        final int flags;
         final String message;
 
-        private Result(boolean success, long generation, String message) {
+        private Result(boolean success, long generation, int flags, String message) {
             this.success = success;
             this.generation = generation;
+            this.flags = flags;
             this.message = message;
         }
 
-        static Result ok(long generation) {
-            return new Result(true, generation, "State accepted by engine bridge.");
+        boolean engineReady() {
+            return (flags & NativeBridge.FLAG_ENGINE_READY) != 0;
         }
 
-        static Result error(String message) {
-            return new Result(false, -1L, message);
+        boolean emergencyDisabled() {
+            return (flags & NativeBridge.FLAG_EMERGENCY_DISABLE) != 0;
+        }
+
+        static Result ok(long generation, int flags) {
+            return new Result(true, generation, flags, "State accepted by the root companion.");
+        }
+
+        static Result error(String message, int flags) {
+            return new Result(false, -1L, flags, message);
         }
     }
 }
