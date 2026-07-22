@@ -231,7 +231,7 @@ final class ManagerScreen extends ScrollView {
             if (suppressEnabledListener) {
                 return;
             }
-            publishState(checked, false);
+            publishState(checked, true);
         });
         applyButton.setOnClickListener(view -> publishState(enabledSwitch.isChecked(), true));
         disableButton.setOnClickListener(view -> publishState(false, true));
