@@ -5,6 +5,7 @@ STATE_DIR=/data/adb/geoveil
 GUARD_DIR=$STATE_DIR/guard
 RUNTIME_DIR=/data/local/tmp/geoveil
 LOG_FILE=$STATE_DIR/geoveil.log
+MANAGER_UI=$MODDIR/manager-ui.apk
 
 umask 077
 mkdir -p "$GUARD_DIR"
@@ -14,20 +15,20 @@ log() {
 }
 
 stage_manager() {
-  if [ ! -s "$MODDIR/manager.apk" ]; then
-    log "manager payload absent; Shell and overlay bootstrap remain inactive"
+  if [ ! -s "$MANAGER_UI" ]; then
+    log "manager UI payload absent; Shell and overlay bootstrap remain inactive"
     return 0
   fi
 
   mkdir -p "$RUNTIME_DIR" || return 0
-  cp -f "$MODDIR/manager.apk" "$RUNTIME_DIR/manager.apk" || {
-    log "manager payload staging failed"
+  cp -f "$MANAGER_UI" "$RUNTIME_DIR/manager.apk" || {
+    log "manager UI payload staging failed"
     return 0
   }
   chown 2000:2000 "$RUNTIME_DIR" "$RUNTIME_DIR/manager.apk" >/dev/null 2>&1 || true
   chmod 0755 "$RUNTIME_DIR"
   chmod 0644 "$RUNTIME_DIR/manager.apk"
-  log "manager and overlay payload staged for specialized child processes"
+  log "manager and overlay UI payload staged for specialized app processes"
 }
 
 enter_emergency() {
