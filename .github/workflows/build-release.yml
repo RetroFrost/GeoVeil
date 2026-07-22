@@ -28,6 +28,7 @@ concurrency:
 env:
   NDK_VERSION: 27.2.12479018
   ANDROID_PLATFORM: android-36
+  NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
@@ -101,7 +102,7 @@ jobs:
           "$CMAKE" -S native -B build/native -G Ninja \
             -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
             -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
+            -DANDROID_PLATFORM="${NATIVE_PLATFORM}" \
             -DANDROID_STL=c++_static \
             -DCMAKE_BUILD_TYPE=Release
           "$CMAKE" --build build/native --parallel 2
@@ -216,6 +217,8 @@ jobs:
           - no force-stop or restart of Shell, system_server, or zygote.
 
           **The central system_server location engine and root bridge server are not implemented yet.** When no bridge accepts the state, the manager reports pass-through and does not claim that coordinates changed.
+
+          The Java manager targets API 36. The arm64 native library uses NDK r27's supported native API 35 baseline and is packaged only for the installer-enforced Android 16/API 36 target.
 
           No test provider, Android mock-location setting, Watchdog modification, telephony identifier, EFS, modem, partition, or custom-kernel modification is included. This build must be device-tested before it is described as working.
           NOTES
