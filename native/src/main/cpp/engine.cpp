@@ -234,7 +234,7 @@ bool cache_location_api(JNIEnv* env) {
     g_location.array_list_class = static_cast<jclass>(env->NewGlobalRef(array_list));
     g_location.result_size = env->GetMethodID(result, "size", "()I");
     g_location.result_get = env->GetMethodID(result, "get", "(I)Landroid/location/Location;");
-    g_location.result_create = env->GetStaticMethodID(result, "create",
+    g_location.result_create = env->GetStaticMethodID(result, "wrap",
             "(Ljava/util/List;)Landroid/location/LocationResult;");
     g_location.location_copy = env->GetMethodID(location, "<init>",
             "(Landroid/location/Location;)V");
