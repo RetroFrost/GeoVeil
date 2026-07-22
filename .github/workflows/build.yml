@@ -35,19 +35,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager \
             "platforms;${ANDROID_PLATFORM}" \
             "build-tools;${BUILD_TOOLS_VERSION}" \
-            "ndk;${NDK_VERSION}"
-          sudo apt-get update
-          sudo apt-get install --yes ninja-build zip
+            "ndk;${NDK_VERSION}" >/dev/null
+          sudo apt-get update -qq
+          sudo apt-get install --yes -qq ninja-build zip >/dev/null
 
       - name: Build parasitic manager DEX archive
         shell: bash
         run: |
+          set +e
+          bash manager/build-manager.sh >manager-build.log 2>&1
+          status=$?
+          cat manager-build.log
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Manager build failed"
+            exit "$status"
+          fi
           set -euo pipefail
-          bash manager/build-manager.sh
           test -s manager/build/manager.apk
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
