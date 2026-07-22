@@ -42,6 +42,8 @@ final class NativeBridge {
 
     static native int lastFlags();
 
+    static native int lastMovementMode();
+
     static native long clearEmergency();
 
     static native long disableModule();
