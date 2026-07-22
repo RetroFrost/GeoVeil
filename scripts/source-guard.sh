@@ -43,9 +43,9 @@ grep -q 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
   || fail "sourced legacy cleanup must return to the installer"
 
 echo "Checking one-crash fuse markers..."
-grep -q 'guard/installing' module/service.sh \
+grep -q 'GUARD_DIR/installing' module/service.sh \
   || fail "service monitor does not watch the installing marker"
-grep -q 'guard/emergency_disable' module/service.sh \
+grep -q 'GUARD_DIR/emergency_disable' module/service.sh \
   || fail "service monitor cannot create emergency pass-through"
 grep -q 'observed_system_server.pid' module/service.sh \
   || fail "service monitor does not record the guarded system_server PID"
