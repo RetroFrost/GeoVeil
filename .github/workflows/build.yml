@@ -59,6 +59,8 @@ jobs:
           fi
           set -euo pipefail
           test -s manager/build/manager.apk
+          test -s manager/build/dex/classes.dex
+          test "$(head -c 3 manager/build/dex/classes.dex)" = "dex"
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
 
@@ -142,7 +144,10 @@ jobs:
           rm -rf out
           mkdir -p out/stage/zygisk
           cp -a module/. out/stage/
-          cp manager/build/manager.apk out/stage/manager.apk
+          # system_server receives a raw DEX through InMemoryDexClassLoader.
+          cp manager/build/dex/classes.dex out/stage/manager.apk
+          # The parasitic Shell host receives an APK/ZIP through PathClassLoader.
+          cp manager/build/manager.apk out/stage/manager-ui.apk
           cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
           find out/stage -type d -exec chmod 0755 {} +
           find out/stage -type f -exec chmod 0644 {} +
@@ -151,6 +156,8 @@ jobs:
             out/stage/cleanup-legacy.sh \
             out/stage/service.sh \
             out/stage/action.sh
+          test "$(head -c 3 out/stage/manager.apk)" = "dex"
+          unzip -l out/stage/manager-ui.apk | grep -q 'classes.dex'
           (
             cd out/stage
             zip -9 -r ../GeoVeil-RC2-development.zip .
@@ -161,6 +168,7 @@ jobs:
           unzip -l GeoVeil-RC2-development.zip | tee contents.txt
           grep -q 'zygisk/arm64-v8a.so' contents.txt
           grep -q 'manager.apk' contents.txt
+          grep -q 'manager-ui.apk' contents.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -172,6 +180,7 @@ jobs:
             out/contents.txt
             manager/build/manager.apk
             manager/build/manager.apk.sha256
+            manager/build/dex/classes.dex
             manager/build/manager-contents.txt
             native/third_party/hook-dependencies.lock
             build/native/file.txt
