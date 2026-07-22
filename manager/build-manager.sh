@@ -25,13 +25,12 @@ find "$ROOT/src/main/java" -name '*.java' -print | sort > "$ROOT/build/sources.l
   exit 1
 }
 
-# Android's platform jar is supplied as the boot class path. Java 8 bytecode keeps
-# this direct javac + D8 build compatible with the hosted GitHub runner JDK.
+# Use the JDK's Java 8 standard-library signatures and the API 36 android.jar as
+# the Android class path. Replacing the entire boot class path with android.jar
+# hides LambdaMetafactory from modern javac and prevents lambda compilation.
 javac \
   -encoding UTF-8 \
-  -source 8 \
-  -target 8 \
-  -bootclasspath "$ANDROID_JAR" \
+  --release 8 \
   -classpath "$ANDROID_JAR" \
   -d "$ROOT/build/classes" \
   @"$ROOT/build/sources.list"
