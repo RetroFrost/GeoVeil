@@ -21,7 +21,7 @@ echo "Checking non-invasive Magisk layout..."
 [[ ! -e module/hooks_enabled ]] || fail "virtualization must not be enabled in the package"
 [[ ! -e module/manager.apk ]] || fail "compiled manager.apk must be produced by CI, not committed as a prebuilt"
 
-echo "Checking RC2 manager source contract..."
+echo "Checking RC2 manager and state-bridge source contract..."
 [[ -f manager/build-manager.sh ]] || fail "manager/build-manager.sh is required"
 [[ -f manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java ]] \
   || fail "manager lifecycle entry point is missing"
@@ -29,12 +29,28 @@ echo "Checking RC2 manager source contract..."
   || fail "manager screen implementation is missing"
 [[ -f manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java ]] \
   || fail "bounded manager bridge client is missing"
+[[ -f native/src/main/cpp/state_bridge.hpp ]] || fail "native state bridge contract is missing"
+[[ -f native/src/main/cpp/state_bridge.cpp ]] || fail "native state bridge implementation is missing"
+grep -q 'geoveil.manager.v1' manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java \
+  || fail "manager bridge socket name is missing"
+grep -q 'geoveil.manager.v1' native/src/main/cpp/state_bridge.cpp \
+  || fail "native bridge socket name does not match the manager"
 grep -q 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
   || fail "Magisk Action does not carry the GeoVeil launch category"
 grep -q 'com.android.shell/.BugreportWarningActivity' module/action.sh \
   || fail "Shell trampoline component is missing"
 grep -q 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
   || fail "sourced legacy cleanup must return to the installer"
+
+echo "Checking one-crash fuse markers..."
+grep -q 'guard/installing' module/service.sh \
+  || fail "service monitor does not watch the installing marker"
+grep -q 'guard/emergency_disable' module/service.sh \
+  || fail "service monitor cannot create emergency pass-through"
+grep -q 'observed_system_server.pid' module/service.sh \
+  || fail "service monitor does not record the guarded system_server PID"
+grep -q 'MODDIR/disable' module/service.sh \
+  || fail "service monitor does not disable the module for the next boot"
 
 echo "Scanning executable source for forbidden mechanisms..."
 SCAN_PATHS=(native module manager)
@@ -79,8 +95,14 @@ grep -q 'kAndroidShellUid = 2000' native/src/main/cpp/module.cpp \
   || fail "Shell child routing must use the dedicated Android shell UID"
 grep -q 'postAppSpecialize' native/src/main/cpp/module.cpp \
   || fail "post-specialization manager bootstrap entry point is missing"
+grep -q 'preServerSpecialize' native/src/main/cpp/module.cpp \
+  || fail "system_server companion connection point is missing"
 grep -q 'postServerSpecialize' native/src/main/cpp/module.cpp \
   || fail "system_server specialization entry point is missing"
+grep -q 'REGISTER_ZYGISK_COMPANION' native/src/main/cpp/module.cpp \
+  || fail "root companion entry is not registered"
+grep -q 'read_state_snapshot' native/src/main/cpp/state_bridge.cpp \
+  || fail "bounded system_server snapshot reader is missing"
 grep -q '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \
   || fail "native Shell bootstrap does not use the staged manager archive"
 
