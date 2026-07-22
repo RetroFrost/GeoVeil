@@ -20,8 +20,9 @@ enum class Operation : uint16_t {
     kMove = 3,
     kEngineBegin = 4,
     kEngineHealthy = 5,
-    kClearEmergency = 6,
-    kDisableModule = 7,
+    kEngineAbort = 6,
+    kClearEmergency = 7,
+    kDisableModule = 8,
 };
 
 enum class Status : int32_t {
