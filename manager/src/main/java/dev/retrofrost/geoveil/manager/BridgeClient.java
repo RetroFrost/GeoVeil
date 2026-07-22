@@ -90,22 +90,22 @@ final class BridgeClient {
             boolean hasCoordinates = (flags & FLAG_HAS_COORDINATES) != 0;
 
             if (status == STATUS_OK) {
-                String message;
                 if (emergency) {
-                    message = "Emergency pass-through is active.";
-                } else if (!engineActive) {
-                    message = "State bridge connected; the location hook is not armed, so genuine location still passes through.";
-                } else if (effectiveEnabled) {
-                    message = "Virtual coordinate accepted by the active engine.";
-                } else {
-                    message = "Engine connected in genuine-location pass-through mode.";
+                    return Result.error("Emergency pass-through is active; GeoVeil cannot be enabled.");
                 }
+                if (!engineActive) {
+                    return Result.error(
+                            "State bridge connected; the location hook is not armed, so genuine location still passes through.");
+                }
+                String message = effectiveEnabled
+                        ? "Virtual coordinate accepted by the active engine."
+                        : "Engine connected in genuine-location pass-through mode.";
                 return Result.ok(
                         acceptedGeneration,
                         message,
                         bridgeReady,
-                        engineActive,
-                        emergency,
+                        true,
+                        false,
                         effectiveEnabled,
                         hasCoordinates);
             }
