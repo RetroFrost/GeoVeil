@@ -646,7 +646,7 @@ index 4459957..091766b 100644
          android:layout_marginTop="15dp"
          android:text="@string/bookmark"
 diff --git a/app/src/main/res/layout/joystick_layout.xml b/app/src/main/res/layout/joystick_layout.xml
-index ebb1aa5..147e37a 100644
+index ebb1aa5..b67fe9d 100644
 --- a/app/src/main/res/layout/joystick_layout.xml
 +++ b/app/src/main/res/layout/joystick_layout.xml
 @@ -2,39 +2,67 @@
@@ -731,7 +731,7 @@ index ebb1aa5..147e37a 100644
 +    <com.github.fakegps.ui.AnalogJoystickView
 +        android:id="@+id/analog_joystick"
 +        android:layout_width="96dp"
-+        android:layout_height="78dp"
++        android:layout_height="96dp"
 +        android:layout_gravity="center"
 +        android:contentDescription="Analog movement joystick"/>
 +
@@ -750,7 +750,7 @@ index 0000000..8733664
 +        android:showAsAction="never" />
 +</menu>
 diff --git a/app/src/main/res/values/dimens.xml b/app/src/main/res/values/dimens.xml
-index cd47066..afabc41 100644
+index cd47066..545de32 100644
 --- a/app/src/main/res/values/dimens.xml
 +++ b/app/src/main/res/values/dimens.xml
 @@ -2,7 +2,7 @@
@@ -760,7 +760,7 @@ index cd47066..afabc41 100644
 -    <dimen name="joystick_width">150dp</dimen>
 -    <dimen name="joystick_height">200dp</dimen>
 +    <dimen name="joystick_width">116dp</dimen>
-+    <dimen name="joystick_height">158dp</dimen>
++    <dimen name="joystick_height">174dp</dimen>
  
  </resources>
 diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
