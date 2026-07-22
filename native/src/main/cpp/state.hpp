@@ -110,10 +110,6 @@ inline bool validate_snapshot(const StateSnapshot& state) {
     if (!std::isfinite(state.longitude) || state.longitude < -180.0 || state.longitude > 180.0) {
         return false;
     }
-    // Android 16 LocationResult validation rejects non-mock 0,0 as incomplete.
-    if (state.latitude == 0.0 && state.longitude == 0.0) {
-        return false;
-    }
     if ((state.flags & kFlagAutomaticAltitude) == 0
             && (!std::isfinite(state.altitude) || state.altitude < -500.0 || state.altitude > 9000.0)) {
         return false;
