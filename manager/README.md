@@ -1,21 +1,36 @@
-# GeoVeil RC2 manager source
+# GeoVeil RC2 parasitic manager
 
-This directory is reserved for the RC2 parasitic Material 3 manager.
+This directory now contains an original Java implementation of the first GeoVeil parasitic-manager surface.
 
-Current state: architecture scaffold only. No manager DEX, resources, activity, or shell-host bootstrap is implemented yet, and nothing from this directory is packaged into automated development ZIPs.
+Implemented in source:
 
-Implementation rules:
-
+- programmatic Material-3-inspired filled-field interface
+- dynamic system-color lookup with light/dark fallbacks
+- strict latitude, longitude, altitude, speed, bearing, and accuracy validation
+- remembered coordinate drafts while virtualization stays disabled by default
+- Easy Location Switch control disabled by default
+- bounded background local-socket client for the future versioned native bridge
+- Shell activity lifecycle attachment through `GeoVeilEntry`
 - no separately installed launcher-visible package
-- bootstrap only inside the specialized `com.android.shell` child
+- reproducible `javac` + D8 build producing a DEX archive named `manager.apk`
+
+The native Zygisk library loads this archive only in the specialized Android Shell child and invokes `GeoVeilEntry.install(Application)`. Magisk's module Action stages the archive in `/data/local/tmp/geoveil` and opens the Shell bug-report activity with GeoVeil's launch category.
+
+Current limitation: the central `system_server` location engine and root bridge server are still intentionally absent, so the manager reports pass-through when no bridge accepts its bounded state message. The UI is implemented; working location virtualization is not yet claimed.
+
+Implementation rules retained:
+
 - no manager loading during zygote or pre-specialization callbacks
 - no force-stop, kill, or restart of `com.android.shell`
-- no direct synchronous calls from the UI into `system_server`
-- manager state goes through the versioned companion bridge
-- all coordinate validation occurs before publishing a new state generation
-- closing or crashing the manager must not alter the active engine state
+- no synchronous bridge calls on the UI thread
+- no direct synchronous calls from the manager into `system_server`
+- closing or crashing the manager does not change the engine state
 - no network telemetry, test provider, Settings mock path, telephony, EFS, modem, or block-device access
 
-See [`../docs/MANAGER.md`](../docs/MANAGER.md) for the complete RC2 manager contract and release tests.
+Build with an Android API 36 SDK and Build Tools 36.0.0:
 
-ReLSPosed architecture may be studied for compatibility behavior, but source code must not be copied until GeoVeil has finalized a GPL-compatible project license and preserved all required copyright and license notices.
+```bash
+ANDROID_HOME=/path/to/android-sdk ./manager/build-manager.sh
+```
+
+See [`../docs/MANAGER.md`](../docs/MANAGER.md) for the complete RC2 manager contract and target-device release tests.
