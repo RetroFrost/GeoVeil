@@ -12,9 +12,9 @@ permissions:
   pull-requests: write
 
 env:
-  NDK_VERSION: 27.2.12479018
+  NDK_VERSION: 29.0.14206865
   ANDROID_PLATFORM: android-36
-  NATIVE_PLATFORM: android-35
+  NATIVE_PLATFORM: android-36
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
