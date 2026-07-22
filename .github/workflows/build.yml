@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 env:
   NDK_VERSION: 27.2.12479018
@@ -39,11 +40,12 @@ jobs:
           sdkmanager \
             "platforms;${ANDROID_PLATFORM}" \
             "build-tools;${BUILD_TOOLS_VERSION}" \
-            "ndk;${NDK_VERSION}" >/dev/null
-          sudo apt-get update -qq
+            "ndk;${NDK_VERSION}" >/dev/null 2>&1
+          sudo apt-get update -qq >/dev/null
           sudo apt-get install --yes -qq ninja-build zip >/dev/null
 
       - name: Build parasitic manager DEX archive
+        id: manager_build
         shell: bash
         run: |
           set +e
@@ -58,6 +60,22 @@ jobs:
           test -s manager/build/manager.apk
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
+
+      - name: Report focused manager compiler error
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '### RC2 manager compiler output'
+            echo
+            echo '```text'
+            tail -n 120 manager-build.log 2>/dev/null || echo 'manager-build.log was not created'
+            echo '```'
+          } > manager-build-comment.md
+          gh pr comment "$PR_NUMBER" --body-file manager-build-comment.md
 
       - name: Fetch pinned Zygisk API header
         shell: bash
