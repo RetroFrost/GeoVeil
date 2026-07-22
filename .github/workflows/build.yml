@@ -12,12 +12,13 @@ permissions:
 
 env:
   NDK_VERSION: 27.2.12479018
-  ANDROID_PLATFORM: android-35
+  ANDROID_PLATFORM: android-36
+  BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
 
     steps:
       - name: Check out source
@@ -30,20 +31,32 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install NDK and packaging tools
+      - name: Install API 36, NDK, and packaging tools
         shell: bash
         run: |
           set -euo pipefail
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "ndk;${NDK_VERSION}"
+          sdkmanager \
+            "platforms;${ANDROID_PLATFORM}" \
+            "build-tools;${BUILD_TOOLS_VERSION}" \
+            "ndk;${NDK_VERSION}"
           sudo apt-get update
           sudo apt-get install --yes ninja-build zip
+
+      - name: Build parasitic manager DEX archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash manager/build-manager.sh
+          test -s manager/build/manager.apk
+          unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
+          grep -q 'classes.dex' manager/build/verified-contents.txt
 
       - name: Fetch pinned Zygisk API header
         shell: bash
         run: bash scripts/fetch-zygisk-header.sh
 
-      - name: Compile arm64 Zygisk scaffold
+      - name: Compile arm64 Zygisk payload
         shell: bash
         run: |
           set -euo pipefail
@@ -67,35 +80,44 @@ jobs:
           grep -q 'zygisk_module_entry' build/native/symbols.txt
           ! grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt
 
-      - name: Package development Magisk ZIP
+      - name: Package RC2 development Magisk ZIP
         shell: bash
         run: |
           set -euo pipefail
           rm -rf out
           mkdir -p out/stage/zygisk
           cp -a module/. out/stage/
+          cp manager/build/manager.apk out/stage/manager.apk
           cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
           find out/stage -type d -exec chmod 0755 {} +
           find out/stage -type f -exec chmod 0644 {} +
-          chmod 0755 out/stage/customize.sh out/stage/service.sh out/stage/action.sh
+          chmod 0755 \
+            out/stage/customize.sh \
+            out/stage/cleanup-legacy.sh \
+            out/stage/service.sh \
+            out/stage/action.sh
           (
             cd out/stage
-            zip -9 -r ../GeoVeil-development.zip .
+            zip -9 -r ../GeoVeil-RC2-development.zip .
           )
           cd out
-          sha256sum GeoVeil-development.zip > SHA256SUMS
-          unzip -t GeoVeil-development.zip
-          unzip -l GeoVeil-development.zip | tee contents.txt
+          sha256sum GeoVeil-RC2-development.zip > SHA256SUMS
+          unzip -t GeoVeil-RC2-development.zip
+          unzip -l GeoVeil-RC2-development.zip | tee contents.txt
           grep -q 'zygisk/arm64-v8a.so' contents.txt
+          grep -q 'manager.apk' contents.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
-          name: GeoVeil-${{ github.sha }}
+          name: GeoVeil-RC2-${{ github.sha }}
           path: |
-            out/GeoVeil-development.zip
+            out/GeoVeil-RC2-development.zip
             out/SHA256SUMS
             out/contents.txt
+            manager/build/manager.apk
+            manager/build/manager.apk.sha256
+            manager/build/manager-contents.txt
             build/native/file.txt
             build/native/elf-header.txt
             build/native/symbols.txt
