@@ -1,3 +1,5 @@
+#include <sys/types.h>
+
 #include "zygisk.hpp"
 
 #include <atomic>

@@ -9,10 +9,12 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 env:
   NDK_VERSION: 27.2.12479018
   ANDROID_PLATFORM: android-36
+  NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
 
 jobs:
@@ -35,22 +37,45 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          yes | sdkmanager --licenses >/dev/null || true
+          yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager \
             "platforms;${ANDROID_PLATFORM}" \
             "build-tools;${BUILD_TOOLS_VERSION}" \
-            "ndk;${NDK_VERSION}"
-          sudo apt-get update
-          sudo apt-get install --yes ninja-build zip
+            "ndk;${NDK_VERSION}" >/dev/null 2>&1
+          sudo apt-get update -qq >/dev/null
+          sudo apt-get install --yes -qq ninja-build zip >/dev/null
 
       - name: Build parasitic manager DEX archive
         shell: bash
         run: |
+          set +e
+          bash manager/build-manager.sh >manager-build.log 2>&1
+          status=$?
+          cat manager-build.log
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Manager build failed"
+            exit "$status"
+          fi
           set -euo pipefail
-          bash manager/build-manager.sh
           test -s manager/build/manager.apk
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
+
+      - name: Report focused manager compiler error
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '### RC2 manager compiler output'
+            echo
+            echo '```text'
+            tail -n 120 manager-build.log 2>/dev/null || echo 'manager-build.log was not created'
+            echo '```'
+          } > manager-build-comment.md
+          gh pr comment "$PR_NUMBER" --body-file manager-build-comment.md
 
       - name: Fetch pinned Zygisk API header
         shell: bash
@@ -59,15 +84,39 @@ jobs:
       - name: Compile arm64 Zygisk payload
         shell: bash
         run: |
-          set -euo pipefail
+          set +e
           NDK="${ANDROID_HOME}/ndk/${NDK_VERSION}"
-          cmake -S native -B build/native -G Ninja \
-            -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
-            -DANDROID_ABI=arm64-v8a \
-            -DANDROID_PLATFORM="${ANDROID_PLATFORM}" \
-            -DANDROID_STL=c++_static \
-            -DCMAKE_BUILD_TYPE=Release
-          cmake --build build/native --parallel 2
+          {
+            cmake -S native -B build/native -G Ninja \
+              -DCMAKE_TOOLCHAIN_FILE="$NDK/build/cmake/android.toolchain.cmake" \
+              -DANDROID_ABI=arm64-v8a \
+              -DANDROID_PLATFORM="${NATIVE_PLATFORM}" \
+              -DANDROID_STL=c++_static \
+              -DCMAKE_BUILD_TYPE=Release
+            cmake --build build/native --parallel 2
+          } >native-build.log 2>&1
+          status=$?
+          cat native-build.log
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Native Zygisk build failed"
+            exit "$status"
+          fi
+
+      - name: Report focused native compiler error
+        if: failure() && github.event_name == 'pull_request'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          {
+            echo '### RC2 native compiler output'
+            echo
+            echo '```text'
+            tail -n 120 native-build.log 2>/dev/null || echo 'native-build.log was not created'
+            echo '```'
+          } > native-build-comment.md
+          gh pr comment "$PR_NUMBER" --body-file native-build-comment.md
 
       - name: Validate native payload
         shell: bash
