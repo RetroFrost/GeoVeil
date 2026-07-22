@@ -1,0 +1,643 @@
+diff --git a/README.md b/README.md
+index 3be79aa..a809645 100644
+--- a/README.md
++++ b/README.md
+@@ -1,4 +1,22 @@
+-# FakeGPS
++# GeoAvil
++
++GeoAvil is the FakeGPS codebase modernized with a rooted location-command
++backend and an analog floating joystick.
++
++## GeoAvil changes
++
++- Root users can start the location backend without selecting an app in
++  Developer Options. The app invokes Android's `cmd location` interface via
++  `su`; it does not modify `Location.isMock` or hook location consumers.
++- Non-root devices retain the original standard mock-provider fallback.
++- The floating D-pad is replaced with an analog joystick. Movement is
++  published once per location tick, so holding the stick continues moving.
++
++Build with:
++
++```bash
++./gradlew assembleDebug
++```
+ 
+ [中文Readme](https://github.com/xiangtailiang/FakeGPS/blob/master/README_CN.md)
+ 
+diff --git a/app/src/main/java/com/github/fakegps/IJoyStickPresenter.java b/app/src/main/java/com/github/fakegps/IJoyStickPresenter.java
+index 5954e39..342d79e 100644
+--- a/app/src/main/java/com/github/fakegps/IJoyStickPresenter.java
++++ b/app/src/main/java/com/github/fakegps/IJoyStickPresenter.java
+@@ -4,6 +4,7 @@ package com.github.fakegps;
+  * Created by tiger on 7/23/16.
+  */
+ public interface IJoyStickPresenter {
++    void onAnalogMove(float x, float y);
+     void onSetLocationClick();
+ 
+     void onFlyClick();
+diff --git a/app/src/main/java/com/github/fakegps/JoyStickManager.java b/app/src/main/java/com/github/fakegps/JoyStickManager.java
+index 4564ad6..c890a51 100644
+--- a/app/src/main/java/com/github/fakegps/JoyStickManager.java
++++ b/app/src/main/java/com/github/fakegps/JoyStickManager.java
+@@ -27,11 +27,15 @@ public class JoyStickManager implements IJoyStickPresenter {
+     public static double STEP_DEFAULT = 0.00002;
+ 
+     private static JoyStickManager INSTANCE = new JoyStickManager();
++    private static final String PREFS = "geoavil_preferences";
++    private static final String PREF_AUTO_SHOW = "auto_show_analog";
+ 
+     private Context mContext;
+     private LocationThread mLocationThread;
+     private boolean mIsStarted = false;
+     private double mMoveStep = STEP_DEFAULT;
++    private float mAnalogX;
++    private float mAnalogY;
+ 
+     private LocPoint mCurrentLocPoint;
+ 
+@@ -64,7 +68,9 @@ public class JoyStickManager implements IJoyStickPresenter {
+         // Start foreground service for Android 8.0+
+         startForegroundService();
+ 
+-        showJoyStick();
++        if (isAutoShowEnabled()) {
++            showJoyStick();
++        }
+         mIsStarted = true;
+     }
+ 
+@@ -79,6 +85,8 @@ public class JoyStickManager implements IJoyStickPresenter {
+ 
+         hideJoyStick();
+         mIsStarted = false;
++        mAnalogX = 0f;
++        mAnalogY = 0f;
+     }
+ 
+     private void startForegroundService() {
+@@ -120,6 +128,20 @@ public class JoyStickManager implements IJoyStickPresenter {
+         }
+     }
+ 
++    public void restoreJoyStick() {
++        if (mIsStarted) showJoyStick();
++    }
++
++    public boolean isAutoShowEnabled() {
++        return mContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++                .getBoolean(PREF_AUTO_SHOW, true);
++    }
++
++    public void setAutoShowEnabled(boolean enabled) {
++        mContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
++                .edit().putBoolean(PREF_AUTO_SHOW, enabled).apply();
++    }
++
+     public LocPoint getCurrentLocPoint() {
+         return mCurrentLocPoint;
+     }
+@@ -162,6 +184,21 @@ public class JoyStickManager implements IJoyStickPresenter {
+         mMoveStep = moveStep;
+     }
+ 
++    @Override
++    public void onAnalogMove(float x, float y) {
++        // Screen Y points down; geographic latitude points up.
++        mAnalogX = Math.max(-1f, Math.min(1f, x));
++        mAnalogY = Math.max(-1f, Math.min(1f, y));
++    }
++
++    /** Applies one movement tick; called by the location publisher once per update. */
++    public void applyAnalogMovement() {
++        if (mCurrentLocPoint != null && mIsStarted) {
++            mCurrentLocPoint.setLongitude(mCurrentLocPoint.getLongitude() + (mAnalogX * mMoveStep));
++            mCurrentLocPoint.setLatitude(mCurrentLocPoint.getLatitude() - (mAnalogY * mMoveStep));
++        }
++    }
++
+     public double getMoveStep() {
+         return mMoveStep;
+     }
+diff --git a/app/src/main/java/com/github/fakegps/LocationThread.java b/app/src/main/java/com/github/fakegps/LocationThread.java
+index c6387b5..0667ba8 100644
+--- a/app/src/main/java/com/github/fakegps/LocationThread.java
++++ b/app/src/main/java/com/github/fakegps/LocationThread.java
+@@ -30,6 +30,7 @@ public class LocationThread extends HandlerThread {
+     private Handler mHandler;
+     private LocPoint mLastLocPoint = new LocPoint(0, 0);
+     private boolean mProvidersAdded = false;
++    private boolean mRootBackend = false;
+ 
+     public LocationThread(Context context, JoyStickManager joyStickManager) {
+         super("LocationThread");
+@@ -53,7 +54,12 @@ public class LocationThread extends HandlerThread {
+         if (mHandler != null) {
+             mHandler.removeCallbacksAndMessages(null);
+         }
+-        removeTestProviders();
++        if (mRootBackend) {
++            RootBridge.removeProviders();
++            mRootBackend = false;
++        } else {
++            removeTestProviders();
++        }
+         try {
+             quit();
+             interrupt();
+@@ -65,6 +71,13 @@ public class LocationThread extends HandlerThread {
+ 
+     private void addTestProviders() {
+         if (mProvidersAdded) return;
++        // Root users do not need to select GeoAvil in Developer Options.
++        // This does not alter Location.isMock; Android still owns that metadata.
++        mRootBackend = RootBridge.setupProviders();
++        if (mRootBackend) {
++            Logger.d(TAG, "Using root location command backend");
++            return;
++        }
+         for (String provider : PROVIDERS) {
+             try {
+                 // Remove existing test provider if any
+@@ -126,10 +139,13 @@ public class LocationThread extends HandlerThread {
+         public void run() {
+             if (mJoyStickManager == null) return;
+ 
++            mJoyStickManager.applyAnalogMovement();
+             LocPoint locPoint = mJoyStickManager.getUpdateLocPoint();
+             Logger.d(TAG, "UpdateLocation, " + locPoint);
+ 
+-            for (String provider : PROVIDERS) {
++            if (mRootBackend) {
++                RootBridge.publish(locPoint.getLatitude(), locPoint.getLongitude(), System.currentTimeMillis());
++            } else for (String provider : PROVIDERS) {
+                 try {
+                     Location location = new Location(provider);
+                     location.setLatitude(locPoint.getLatitude());
+diff --git a/app/src/main/java/com/github/fakegps/RootBridge.java b/app/src/main/java/com/github/fakegps/RootBridge.java
+new file mode 100644
+index 0000000..a09c092
+--- /dev/null
++++ b/app/src/main/java/com/github/fakegps/RootBridge.java
+@@ -0,0 +1,50 @@
++package com.github.fakegps;
++
++import java.util.Locale;
++import java.util.concurrent.TimeUnit;
++
++/** Small, opt-in root bridge. It only grants this app Android's mock-location AppOp. */
++public final class RootBridge {
++    private RootBridge() {}
++
++    public static boolean setupProviders() {
++        // Adding an already-existing provider can return an error; enabling it
++        // is the reliable capability check for both fresh and repeated starts.
++        runRoot("cmd location providers add-test-provider gps");
++        runRoot("cmd location providers add-test-provider network");
++        boolean gps = runRoot("cmd location providers set-test-provider-enabled gps true");
++        boolean network = runRoot("cmd location providers set-test-provider-enabled network true");
++        return gps && network;
++    }
++
++    public static void removeProviders() {
++        runRoot("cmd location providers set-test-provider-enabled gps false");
++        runRoot("cmd location providers set-test-provider-enabled network false");
++        runRoot("cmd location providers remove-test-provider gps");
++        runRoot("cmd location providers remove-test-provider network");
++    }
++
++    public static boolean publish(double latitude, double longitude, long time) {
++        String location = String.format(Locale.US, "%f,%f", latitude, longitude);
++        String command = "cmd location providers set-test-provider-location %s --location %s --time %d";
++        return runRoot(String.format(Locale.US, command, "gps", location, time))
++                && runRoot(String.format(Locale.US, command, "network", location, time));
++    }
++
++    private static boolean runRoot(String command) {
++        Process process = null;
++        try {
++            process = new ProcessBuilder("su", "-c", command)
++                    .redirectErrorStream(true)
++                    .start();
++            boolean finished = process.waitFor(5, TimeUnit.SECONDS);
++            return finished && process.exitValue() == 0;
++        } catch (Exception ignored) {
++            return false;
++        } finally {
++            if (process != null) {
++                try { process.destroy(); } catch (Exception ignored) { }
++            }
++        }
++    }
++}
+diff --git a/app/src/main/java/com/github/fakegps/ui/AnalogJoystickView.java b/app/src/main/java/com/github/fakegps/ui/AnalogJoystickView.java
+new file mode 100644
+index 0000000..6311163
+--- /dev/null
++++ b/app/src/main/java/com/github/fakegps/ui/AnalogJoystickView.java
+@@ -0,0 +1,83 @@
++package com.github.fakegps.ui;
++
++import android.content.Context;
++import android.graphics.Canvas;
++import android.graphics.Color;
++import android.graphics.Paint;
++import android.graphics.PointF;
++import android.util.AttributeSet;
++import android.view.MotionEvent;
++import android.view.View;
++
++/** A compact floating analog stick. Values are normalized to -1..1. */
++public class AnalogJoystickView extends View {
++    public interface Listener {
++        void onMove(float x, float y);
++        void onRelease();
++    }
++
++    private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
++    private final PointF knob = new PointF();
++    private Listener listener;
++    private float radius;
++    private float knobRadius;
++
++    public AnalogJoystickView(Context context, AttributeSet attrs) {
++        super(context, attrs);
++        setFocusable(true);
++        paint.setStyle(Paint.Style.FILL);
++    }
++
++    public void setListener(Listener listener) {
++        this.listener = listener;
++    }
++
++    @Override
++    protected void onSizeChanged(int width, int height, int oldWidth, int oldHeight) {
++        radius = Math.min(width, height) * 0.42f;
++        knobRadius = radius * 0.34f;
++        centerKnob();
++    }
++
++    private void centerKnob() {
++        knob.set(getWidth() / 2f, getHeight() / 2f);
++    }
++
++    @Override
++    protected void onDraw(Canvas canvas) {
++        super.onDraw(canvas);
++        float cx = getWidth() / 2f;
++        float cy = getHeight() / 2f;
++        paint.setColor(Color.argb(150, 25, 25, 30));
++        canvas.drawCircle(cx, cy, radius, paint);
++        paint.setColor(Color.argb(220, 80, 150, 255));
++        canvas.drawCircle(knob.x, knob.y, knobRadius, paint);
++    }
++
++    @Override
++    public boolean onTouchEvent(MotionEvent event) {
++        if (event.getAction() == MotionEvent.ACTION_UP || event.getAction() == MotionEvent.ACTION_CANCEL) {
++            centerKnob();
++            invalidate();
++            if (listener != null) listener.onRelease();
++            return true;
++        }
++        if (event.getAction() == MotionEvent.ACTION_DOWN || event.getAction() == MotionEvent.ACTION_MOVE) {
++            float cx = getWidth() / 2f;
++            float cy = getHeight() / 2f;
++            float dx = event.getX() - cx;
++            float dy = event.getY() - cy;
++            float distance = (float) Math.hypot(dx, dy);
++            float max = Math.max(1f, radius - knobRadius);
++            if (distance > max) {
++                dx = dx / distance * max;
++                dy = dy / distance * max;
++            }
++            knob.set(cx + dx, cy + dy);
++            invalidate();
++            if (listener != null) listener.onMove(dx / max, dy / max);
++            return true;
++        }
++        return true;
++    }
++}
+diff --git a/app/src/main/java/com/github/fakegps/ui/JoyStickView.java b/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
+index 46b87d7..154dcff 100644
+--- a/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
++++ b/app/src/main/java/com/github/fakegps/ui/JoyStickView.java
+@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
+ 
+ import com.github.fakegps.IJoyStickPresenter;
+ import com.github.fakegps.ScreenUtils;
++import com.github.fakegps.JoyStickManager;
+ import com.tencent.fakegps.R;
+ 
+ /**
+@@ -63,7 +64,8 @@ public class JoyStickView extends FrameLayout {
+         //the real width and height is needed, or the view cannot be shown
+         mWindowLayoutParams.width = mViewWidth;
+         mWindowLayoutParams.height = mViewHeight;
+-        mWindowLayoutParams.x = ScreenUtils.getScreenWidth(context);
++        // Keep the default panel fully visible near the right edge.
++        mWindowLayoutParams.x = Math.max(0, ScreenUtils.getScreenWidth(context) - mViewWidth - 16);
+         mWindowLayoutParams.y = ScreenUtils.getScreenHeight(context) / 2;
+ 
+         findViewById(R.id.btn_set_loc).setOnClickListener(mOnClickListener);
+@@ -79,10 +81,21 @@ public class JoyStickView extends FrameLayout {
+             }
+         });
+ 
+-        findViewById(R.id.btn_up).setOnClickListener(mOnClickListener);
+-        findViewById(R.id.btn_left).setOnClickListener(mOnClickListener);
+-        findViewById(R.id.btn_right).setOnClickListener(mOnClickListener);
+-        findViewById(R.id.btn_down).setOnClickListener(mOnClickListener);
++        findViewById(R.id.btn_hide_joystick).setOnClickListener(v ->
++                JoyStickManager.get().hideJoyStick());
++
++        AnalogJoystickView analogJoystick = findViewById(R.id.analog_joystick);
++        analogJoystick.setListener(new AnalogJoystickView.Listener() {
++            @Override
++            public void onMove(float x, float y) {
++                if (mJoyStickPresenter != null) mJoyStickPresenter.onAnalogMove(x, y);
++            }
++
++            @Override
++            public void onRelease() {
++                if (mJoyStickPresenter != null) mJoyStickPresenter.onAnalogMove(0f, 0f);
++            }
++        });
+ 
+     }
+ 
+@@ -93,6 +106,9 @@ public class JoyStickView extends FrameLayout {
+     }
+ 
+     public void addToWindow() {
++        android.content.SharedPreferences prefs = getContext().getSharedPreferences("geoavil_preferences", Context.MODE_PRIVATE);
++        mWindowLayoutParams.x = prefs.getInt("joystick_x", mWindowLayoutParams.x);
++        mWindowLayoutParams.y = prefs.getInt("joystick_y", mWindowLayoutParams.y);
+         mWindowManager.addView(this, mWindowLayoutParams);
+         isShowing = true;
+     }
+@@ -153,5 +169,8 @@ public class JoyStickView extends FrameLayout {
+         mWindowLayoutParams.x = (int) (mXInScreen - mXInView);
+         mWindowLayoutParams.y = (int) (mYInScreen - mYInView);
+         mWindowManager.updateViewLayout(this, mWindowLayoutParams);
++        getContext().getSharedPreferences("geoavil_preferences", Context.MODE_PRIVATE)
++                .edit().putInt("joystick_x", mWindowLayoutParams.x)
++                .putInt("joystick_y", mWindowLayoutParams.y).apply();
+     }
+ }
+diff --git a/app/src/main/java/com/github/fakegps/ui/MainActivity.java b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
+index 5f18d80..7ad86ac 100644
+--- a/app/src/main/java/com/github/fakegps/ui/MainActivity.java
++++ b/app/src/main/java/com/github/fakegps/ui/MainActivity.java
+@@ -6,6 +6,9 @@ import android.content.Context;
+ import android.content.DialogInterface;
+ import android.content.Intent;
+ import android.content.IntentFilter;
++import android.location.Location;
++import android.location.LocationListener;
++import android.location.LocationManager;
+ import android.content.pm.PackageManager;
+ import android.net.Uri;
+ import android.os.Build;
+@@ -16,11 +19,14 @@ import android.view.ContextMenu;
+ import android.view.Menu;
+ import android.view.MenuItem;
+ import android.view.View;
++import android.view.MenuInflater;
+ import android.widget.AdapterView;
+ import android.widget.Button;
++import android.widget.CheckBox;
+ import android.widget.EditText;
+ import android.widget.ListView;
+ import android.widget.Toast;
++import android.widget.TextView;
+ 
+ import androidx.annotation.NonNull;
+ import androidx.appcompat.app.AlertDialog;
+@@ -55,6 +61,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+     private ListView mListView;
+     private Button mBtnStart;
+     private Button mBtnSetNew;
++    private Button mBtnRestoreAnalog;
++    private CheckBox mAutoShowAnalog;
+     private BookmarkAdapter mAdapter;
+ 
+     // Pending start params - saved while requesting permissions
+@@ -97,6 +105,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+         mBtnSetNew.setOnClickListener(this);
+         updateBtnSetNew();
+ 
++        mAutoShowAnalog = findViewById(R.id.checkbox_auto_show_analog);
++        mAutoShowAnalog.setChecked(JoyStickManager.get().isAutoShowEnabled());
++        mAutoShowAnalog.setOnCheckedChangeListener((button, checked) ->
++                JoyStickManager.get().setAutoShowEnabled(checked));
++
++        mBtnRestoreAnalog = findViewById(R.id.btn_restore_analog);
++        mBtnRestoreAnalog.setOnClickListener(v -> JoyStickManager.get().restoreJoyStick());
++
+         initListView();
+ 
+         registerBroadcastReceiver();
+@@ -170,17 +186,17 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+             if (!Settings.canDrawOverlays(this)) {
+                 new AlertDialog.Builder(this)
+-                        .setTitle("需要悬浮窗权限")
+-                        .setMessage("FakeGPS 需要悬浮窗权限来显示操控手柄。请在接下来的设置页面中允许此权限。")
+-                        .setPositiveButton("去设置", new DialogInterface.OnClickListener() {
++                        .setTitle("Overlay permission required")
++                        .setMessage("GeoAvil needs overlay permission to display the floating joystick. Because this APK was installed outside an app store, first open GeoAvil's App Info and choose ⋮ > Allow restricted settings. Then enable Display over other apps.")
++                        .setPositiveButton("Open app info", new DialogInterface.OnClickListener() {
+                             @Override
+                             public void onClick(DialogInterface dialog, int which) {
+-                                Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
++                                Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                         Uri.parse("package:" + getPackageName()));
+                                 startActivityForResult(intent, REQUEST_CODE_OVERLAY);
+                             }
+                         })
+-                        .setNegativeButton("取消", null)
++                        .setNegativeButton("Cancel", null)
+                         .show();
+                 return;
+             }
+@@ -207,7 +223,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+                 // Location granted, continue checking next permission
+                 checkPermissionsAndStart();
+             } else {
+-                Toast.makeText(this, "需要位置权限才能模拟 GPS", Toast.LENGTH_LONG).show();
++                Toast.makeText(this, "Location permission is required to simulate GPS.", Toast.LENGTH_LONG).show();
+             }
+         } else if (requestCode == REQUEST_CODE_NOTIFICATION) {
+             // Notification permission is optional, continue regardless
+@@ -223,7 +239,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+                 // Overlay granted, continue the chain
+                 checkPermissionsAndStart();
+             } else {
+-                Toast.makeText(this, "悬浮窗权限未授予", Toast.LENGTH_SHORT).show();
++                Toast.makeText(this, "Overlay permission was not granted.", Toast.LENGTH_SHORT).show();
+             }
+         }
+     }
+@@ -314,6 +330,61 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
+         }
+     };
+ 
++    @Override
++    public boolean onCreateOptionsMenu(Menu menu) {
++        getMenuInflater().inflate(R.menu.main_menu, menu);
++        return true;
++    }
++
++    @Override
++    public boolean onOptionsItemSelected(MenuItem item) {
++        if (item.getItemId() == R.id.menu_mock_status) {
++            showMockStatusTester();
++            return true;
++        }
++        return super.onOptionsItemSelected(item);
++    }
++
++    private void showMockStatusTester() {
++        final TextView status = new TextView(this);
++        status.setPadding(48, 32, 48, 16);
++        status.setText("Waiting for a location update…");
++        final AlertDialog dialog = new AlertDialog.Builder(this)
++                .setTitle("Mock location status")
++                .setView(status)
++                .setNegativeButton("Close", null)
++                .create();
++
++        final LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
++        final LocationListener listener = new LocationListener() {
++            @Override
++            public void onLocationChanged(@NonNull Location location) {
++                String provider = location.getProvider() == null ? "unknown" : location.getProvider();
++                status.setText(String.format(java.util.Locale.US,
++                        "isMock = %s\n\nProvider: %s\nLatitude: %.6f\nLongitude: %.6f\nAccuracy: %.1f m",
++                        location.isMock() ? "true" : "false", provider,
++                        location.getLatitude(), location.getLongitude(), location.getAccuracy()));
++            }
++        };
++        dialog.setOnShowListener(ignored -> {
++            try {
++                if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
++                        != PackageManager.PERMISSION_GRANTED) {
++                    status.setText("Location permission is required to test isMock.");
++                    return;
++                }
++                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, listener);
++                locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 1000, 0, listener);
++                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
++                if (last != null) listener.onLocationChanged(last);
++            } catch (Exception e) {
++                status.setText("Unable to read location: " + e.getMessage());
++            }
++        });
++        dialog.setOnDismissListener(ignored -> locationManager.removeUpdates(listener));
++        dialog.show();
++    }
++
+ 
+     @Override
+     protected void onDestroy() {
+diff --git a/app/src/main/res/layout/activity_main.xml b/app/src/main/res/layout/activity_main.xml
+index 4459957..091766b 100644
+--- a/app/src/main/res/layout/activity_main.xml
++++ b/app/src/main/res/layout/activity_main.xml
+@@ -57,11 +57,25 @@
+ 
+     </LinearLayout>
+ 
++    <CheckBox
++        android:id="@+id/checkbox_auto_show_analog"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:layout_below="@+id/ll_move_step"
++        android:text="Show analog automatically when starting"/>
++
++    <Button
++        android:id="@+id/btn_restore_analog"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:layout_below="@+id/checkbox_auto_show_analog"
++        android:text="Restore analog"/>
++
+     <TextView
+         android:id="@+id/tv_bookmark"
+         android:layout_width="match_parent"
+         android:layout_height="wrap_content"
+-        android:layout_below="@+id/ll_move_step"
++        android:layout_below="@+id/btn_restore_analog"
+         android:layout_marginBottom="15dp"
+         android:layout_marginTop="15dp"
+         android:text="@string/bookmark"
+diff --git a/app/src/main/res/layout/joystick_layout.xml b/app/src/main/res/layout/joystick_layout.xml
+index ebb1aa5..533080a 100644
+--- a/app/src/main/res/layout/joystick_layout.xml
++++ b/app/src/main/res/layout/joystick_layout.xml
+@@ -31,10 +31,29 @@
+ 
+     </LinearLayout>
+ 
+-    <include
+-        layout="@layout/joystick_arrow"
+-        android:layout_width="wrap_content"
+-        android:layout_height="wrap_content"
+-        android:layout_gravity="center"/>
+-
+-</LinearLayout>
+\ No newline at end of file
++    <TextView
++        android:id="@+id/joystick_drag_handle"
++        android:layout_width="match_parent"
++        android:layout_height="28dp"
++        android:gravity="center"
++        android:text="Drag to move"
++        android:textColor="#FFFFFFFF"
++        android:textSize="11sp"
++        android:background="#55333333"/>
++
++    <Button
++        android:id="@+id/btn_hide_joystick"
++        android:layout_width="match_parent"
++        android:layout_height="32dp"
++        android:minHeight="0dp"
++        android:text="Hide analog"
++        android:textSize="10sp"/>
++
++    <com.github.fakegps.ui.AnalogJoystickView
++        android:id="@+id/analog_joystick"
++        android:layout_width="150dp"
++        android:layout_height="150dp"
++        android:layout_gravity="center"
++        android:contentDescription="Analog movement joystick"/>
++
++</LinearLayout>
+diff --git a/app/src/main/res/menu/main_menu.xml b/app/src/main/res/menu/main_menu.xml
+new file mode 100644
+index 0000000..8733664
+--- /dev/null
++++ b/app/src/main/res/menu/main_menu.xml
+@@ -0,0 +1,7 @@
++<?xml version="1.0" encoding="utf-8"?>
++<menu xmlns:android="http://schemas.android.com/apk/res/android">
++    <item
++        android:id="@+id/menu_mock_status"
++        android:title="Mock status tester"
++        android:showAsAction="never" />
++</menu>
+diff --git a/app/src/main/res/values/strings.xml b/app/src/main/res/values/strings.xml
+index fe3f5c5..50b3166 100644
+--- a/app/src/main/res/values/strings.xml
++++ b/app/src/main/res/values/strings.xml
+@@ -1,5 +1,5 @@
+ <resources>
+-    <string name="app_name">FakeGPS</string>
++    <string name="app_name">GeoAvil</string>
+     <string name="btn_start">Start</string>
+     <string name="btn_stop">Stop</string>
+     <string name="menu_delete">Delete</string>

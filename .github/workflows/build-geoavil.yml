@@ -13,8 +13,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout GeoAvil source
+      - name: Checkout patch repo
         uses: actions/checkout@v4
+
+      - name: Prepare FakeGPS source
+        run: |
+          git clone https://github.com/xiangtailiang/FakeGPS.git geoavil
+          git -C geoavil checkout 8502952b815c134be6514d71f0cfb76acd68e7c3
+          git -C geoavil apply --binary --verbose ../geoavil.patch
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -31,9 +37,10 @@ jobs:
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
       - name: Build GeoAvil
+        working-directory: geoavil
         run: |
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace --info 2>&1 | tee build-output.log
+          ./gradlew :app:assembleDebug --stacktrace --info 2>&1 | tee ../build-output.log
 
       - name: Upload build log
         if: always()
@@ -49,6 +56,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: GeoAvil-mock-status-tester
-          path: app/build/outputs/apk/debug/*.apk
+          path: geoavil/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
