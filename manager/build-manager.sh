@@ -13,8 +13,8 @@ ZIPALIGN="$BUILD_TOOLS/zipalign"
 APKSIGNER="$BUILD_TOOLS/apksigner"
 MANIFEST="$ROOT/src/main/AndroidManifest.xml"
 RESOURCES="$ROOT/src/main/res"
-VERSION_NAME="0.2.0-rc2-dev-standalone2"
-VERSION_CODE=204
+VERSION_NAME="0.2.0-rc2-dev-standalone3"
+VERSION_CODE=205
 
 for required in "$ANDROID_JAR" "$D8" "$AAPT2" "$ZIPALIGN" "$APKSIGNER" "$MANIFEST"; do
   [[ -e "$required" ]] || {

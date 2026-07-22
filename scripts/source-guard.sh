@@ -76,9 +76,12 @@ require_text 'apksigner' manager/build-manager.sh \
   "standalone manager APK is not signed"
 require_text 'geoveil-development-apk-signing-v1' .github/workflows/build.yml \
   "development APK signing identity is not stable across CI builds"
-require_text 'new ProcessBuilder("su", "-c"' \
+require_text 'new ProcessBuilder(su, "-c"' \
   manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
   "standalone manager does not request root through Magisk su"
+require_text 'id -u' \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
+  "standalone manager does not verify the Magisk root grant"
 require_text '/data/adb/modules/geoveil/bin/geoveilctl' \
   manager/src/main/java/dev/retrofrost/geoveil/manager/RootBridge.java \
   "standalone manager does not target the module control helper"
