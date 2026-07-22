@@ -9,6 +9,17 @@ fail() {
   exit 1
 }
 
+require_file() {
+  [[ -f "$1" ]] || fail "required source is missing: $1"
+}
+
+require_text() {
+  local pattern=$1
+  local path=$2
+  local message=$3
+  grep -Fq -- "$pattern" "$path" || fail "$message"
+}
+
 echo "Checking non-invasive Magisk layout..."
 [[ -f module/skip_mount ]] || fail "module/skip_mount is required"
 [[ ! -e module/system ]] || fail "system replacement tree is forbidden"
@@ -19,30 +30,86 @@ echo "Checking non-invasive Magisk layout..."
 [[ ! -e module/sepolicy.rule ]] || fail "unreviewed sepolicy.rule is forbidden"
 [[ ! -e module/post-fs-data.sh ]] || fail "early-boot post-fs-data.sh is forbidden"
 [[ ! -e module/hooks_enabled ]] || fail "virtualization must not be enabled in the package"
-[[ ! -e module/manager.apk ]] || fail "compiled manager.apk must be produced by CI, not committed as a prebuilt"
+[[ ! -e module/manager.apk ]] || fail "raw manager DEX must be produced by CI, not committed"
+[[ ! -e module/manager-ui.apk ]] || fail "Shell manager archive must be produced by CI, not committed"
 
-echo "Checking RC2 manager source contract..."
-[[ -f manager/build-manager.sh ]] || fail "manager/build-manager.sh is required"
-[[ -f manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java ]] \
-  || fail "manager lifecycle entry point is missing"
-[[ -f manager/src/main/java/dev/retrofrost/geoveil/manager/ManagerScreen.java ]] \
-  || fail "manager screen implementation is missing"
-[[ -f manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java ]] \
-  || fail "bounded manager bridge client is missing"
-grep -q 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
-  || fail "Magisk Action does not carry the GeoVeil launch category"
-grep -q 'com.android.shell/.BugreportWarningActivity' module/action.sh \
-  || fail "Shell trampoline component is missing"
-grep -q 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
-  || fail "sourced legacy cleanup must return to the installer"
+for script in module/customize.sh module/cleanup-legacy.sh module/service.sh module/action.sh; do
+  require_file "$script"
+  sh -n "$script" || fail "shell syntax check failed: $script"
+done
+
+echo "Checking complete RC2 Java source contract..."
+for source in \
+  manager/build-manager.sh \
+  manager/src/main/java/dev/retrofrost/geoveil/engine/DeliveryHook.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/GeoVeilEntry.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/ManagerScreen.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/NativeBridge.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/BridgeClient.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/EasyLocationController.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/MovementPanel.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/JoystickView.java \
+  manager/src/main/java/dev/retrofrost/geoveil/manager/OverlayEntry.java; do
+  require_file "$source"
+done
+
+require_text 'dev.retrofrost.geoveil.LAUNCH_MANAGER' module/action.sh \
+  "Magisk Action does not carry the GeoVeil launch category"
+require_text 'com.android.shell/.BugreportWarningActivity' module/action.sh \
+  "Shell trampoline component is missing"
+require_text 'MANAGER_SOURCE=$MODDIR/manager-ui.apk' module/action.sh \
+  "Magisk Action must stage the Shell manager archive, not the raw engine DEX"
+require_text 'MANAGER_UI=$MODDIR/manager-ui.apk' module/service.sh \
+  "late-start service must stage the Shell manager archive separately"
+require_text 'return 0 2>/dev/null || exit 0' module/cleanup-legacy.sh \
+  "sourced legacy cleanup must return to the installer"
+
+echo "Checking native engine, companion, and hook contract..."
+for source in \
+  native/src/main/cpp/module.cpp \
+  native/src/main/cpp/bridge.cpp \
+  native/src/main/cpp/bridge.hpp \
+  native/src/main/cpp/companion.cpp \
+  native/src/main/cpp/engine.cpp \
+  native/src/main/cpp/engine.hpp \
+  native/src/main/cpp/ipc.hpp \
+  native/src/main/cpp/state.hpp \
+  scripts/fetch-hook-deps.sh; do
+  require_file "$source"
+done
+
+require_text 'GetStaticMethodID(result, "wrap",' native/src/main/cpp/engine.cpp \
+  "Android 16 LocationResult.wrap(List) compatibility probe is missing"
+if grep -Fq 'GetStaticMethodID(result, "create",' native/src/main/cpp/engine.cpp; then
+  fail "obsolete LocationResult.create(List) lookup would leave the engine pass-through"
+fi
+require_text 'REGISTER_ZYGISK_COMPANION' native/src/main/cpp/companion.cpp \
+  "root companion entry is not registered"
+require_text 'lsplant_static' native/CMakeLists.txt \
+  "LSPlant is not linked into the active engine"
+require_text 'dobby_static' native/CMakeLists.txt \
+  "Dobby is not linked into the active engine"
+require_text '-DANDROID_PLATFORM="${NATIVE_PLATFORM}"' .github/workflows/build.yml \
+  "native CI must use the NDK-supported native API level"
+require_text 'manager/build/dex/classes.dex out/stage/manager.apk' .github/workflows/build.yml \
+  "system_server must receive a raw DEX, not an APK/ZIP container"
+require_text 'manager/build/manager.apk out/stage/manager-ui.apk' .github/workflows/build.yml \
+  "Shell manager archive is not packaged separately"
+
+echo "Checking one-crash fuse and recovery markers..."
+require_text 'GUARD_DIR/emergency_disable' module/service.sh \
+  "late-start service cannot activate emergency pass-through"
+require_text 'MODDIR/disable' module/service.sh \
+  "late-start service cannot disable the module for the following boot"
+require_text 'engine_begin' native/src/main/cpp/module.cpp \
+  "system_server does not arm the hook-install generation"
+require_text 'engine_healthy' native/src/main/cpp/module.cpp \
+  "system_server does not report a healthy generation"
+require_text 'engine_abort' native/src/main/cpp/module.cpp \
+  "failed hook installation does not abort cleanly"
 
 echo "Scanning executable source for forbidden mechanisms..."
 SCAN_PATHS=(native module manager)
-EXISTING_PATHS=()
-for path in "${SCAN_PATHS[@]}"; do
-  [[ -e "$path" ]] && EXISTING_PATHS+=("$path")
-done
-
 patterns=(
   'add-test-provider'
   'set-test-provider-location'
@@ -67,21 +134,23 @@ patterns=(
 )
 
 for pattern in "${patterns[@]}"; do
-  if grep -RInE --exclude='source-guard.sh' -- "$pattern" "${EXISTING_PATHS[@]}"; then
+  if grep -RInE --exclude='source-guard.sh' -- "$pattern" "${SCAN_PATHS[@]}"; then
     fail "forbidden source pattern matched: $pattern"
   fi
 done
 
 echo "Checking specialization boundaries..."
-grep -q 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
-  || fail "ordinary app children must unload"
-grep -q 'kAndroidShellUid = 2000' native/src/main/cpp/module.cpp \
-  || fail "Shell child routing must use the dedicated Android shell UID"
-grep -q 'postAppSpecialize' native/src/main/cpp/module.cpp \
-  || fail "post-specialization manager bootstrap entry point is missing"
-grep -q 'postServerSpecialize' native/src/main/cpp/module.cpp \
-  || fail "system_server specialization entry point is missing"
-grep -q '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \
-  || fail "native Shell bootstrap does not use the staged manager archive"
+require_text 'DLCLOSE_MODULE_LIBRARY' native/src/main/cpp/module.cpp \
+  "unrelated application children must unload"
+require_text 'kAndroidShellUid = 2000' native/src/main/cpp/module.cpp \
+  "Shell routing must use Android's dedicated shell UID"
+require_text 'connectCompanion()' native/src/main/cpp/module.cpp \
+  "pre-specialization companion connection is missing"
+require_text 'postAppSpecialize' native/src/main/cpp/module.cpp \
+  "post-specialization manager/overlay bootstrap is missing"
+require_text 'postServerSpecialize' native/src/main/cpp/module.cpp \
+  "post-specialization system_server engine bootstrap is missing"
+require_text '/data/local/tmp/geoveil/manager.apk' native/src/main/cpp/module.cpp \
+  "specialized app bootstrap does not use the staged Shell manager archive"
 
-echo "GeoVeil source guard passed."
+echo "GeoVeil complete RC2 source guard passed."

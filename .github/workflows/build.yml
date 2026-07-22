@@ -12,7 +12,7 @@ permissions:
   pull-requests: write
 
 env:
-  NDK_VERSION: 27.2.12479018
+  NDK_VERSION: 29.0.14206865
   ANDROID_PLATFORM: android-36
   NATIVE_PLATFORM: android-35
   BUILD_TOOLS_VERSION: 36.0.0
@@ -20,7 +20,7 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 50
 
     steps:
       - name: Check out source
@@ -44,8 +44,9 @@ jobs:
             "ndk;${NDK_VERSION}" >/dev/null 2>&1
           sudo apt-get update -qq >/dev/null
           sudo apt-get install --yes -qq ninja-build zip >/dev/null
+          cmake --version
 
-      - name: Build parasitic manager DEX archive
+      - name: Build manager, engine helper, and joystick DEX archive
         shell: bash
         run: |
           set +e
@@ -53,11 +54,13 @@ jobs:
           status=$?
           cat manager-build.log
           if [ "$status" -ne 0 ]; then
-            echo "::error::Manager build failed"
+            echo "::error::Manager and engine DEX build failed"
             exit "$status"
           fi
           set -euo pipefail
           test -s manager/build/manager.apk
+          test -s manager/build/dex/classes.dex
+          test "$(head -c 3 manager/build/dex/classes.dex)" = "dex"
           unzip -l manager/build/manager.apk | tee manager/build/verified-contents.txt
           grep -q 'classes.dex' manager/build/verified-contents.txt
 
@@ -69,17 +72,21 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           {
-            echo '### RC2 manager compiler output'
+            echo '### RC2 Java compiler output'
             echo
             echo '```text'
-            tail -n 120 manager-build.log 2>/dev/null || echo 'manager-build.log was not created'
+            tail -n 160 manager-build.log 2>/dev/null || echo 'manager-build.log was not created'
             echo '```'
           } > manager-build-comment.md
           gh pr comment "$PR_NUMBER" --body-file manager-build-comment.md
 
-      - name: Fetch pinned Zygisk API header
+      - name: Fetch pinned Zygisk and ART hook sources
         shell: bash
-        run: bash scripts/fetch-zygisk-header.sh
+        run: |
+          set -euo pipefail
+          bash scripts/fetch-zygisk-header.sh
+          bash scripts/fetch-hook-deps.sh
+          cat native/third_party/hook-dependencies.lock
 
       - name: Compile arm64 Zygisk payload
         shell: bash
@@ -113,7 +120,7 @@ jobs:
             echo '### RC2 native compiler output'
             echo
             echo '```text'
-            tail -n 120 native-build.log 2>/dev/null || echo 'native-build.log was not created'
+            tail -n 200 native-build.log 2>/dev/null || echo 'native-build.log was not created'
             echo '```'
           } > native-build-comment.md
           gh pr comment "$PR_NUMBER" --body-file native-build-comment.md
@@ -127,6 +134,7 @@ jobs:
           readelf -h build/native/libgeoveil.so | tee build/native/elf-header.txt
           readelf -Ws build/native/libgeoveil.so | tee build/native/symbols.txt
           grep -q 'zygisk_module_entry' build/native/symbols.txt
+          grep -q 'zygisk_companion_entry' build/native/symbols.txt
           ! grep -E 'getImei|getMeid|getDeviceId|TelephonyManager' build/native/symbols.txt
 
       - name: Package RC2 development Magisk ZIP
@@ -136,7 +144,10 @@ jobs:
           rm -rf out
           mkdir -p out/stage/zygisk
           cp -a module/. out/stage/
-          cp manager/build/manager.apk out/stage/manager.apk
+          # system_server receives a raw DEX through InMemoryDexClassLoader.
+          cp manager/build/dex/classes.dex out/stage/manager.apk
+          # The parasitic Shell host receives an APK/ZIP through PathClassLoader.
+          cp manager/build/manager.apk out/stage/manager-ui.apk
           cp build/native/libgeoveil.so out/stage/zygisk/arm64-v8a.so
           find out/stage -type d -exec chmod 0755 {} +
           find out/stage -type f -exec chmod 0644 {} +
@@ -145,6 +156,8 @@ jobs:
             out/stage/cleanup-legacy.sh \
             out/stage/service.sh \
             out/stage/action.sh
+          test "$(head -c 3 out/stage/manager.apk)" = "dex"
+          unzip -l out/stage/manager-ui.apk | grep -q 'classes.dex'
           (
             cd out/stage
             zip -9 -r ../GeoVeil-RC2-development.zip .
@@ -155,6 +168,7 @@ jobs:
           unzip -l GeoVeil-RC2-development.zip | tee contents.txt
           grep -q 'zygisk/arm64-v8a.so' contents.txt
           grep -q 'manager.apk' contents.txt
+          grep -q 'manager-ui.apk' contents.txt
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
@@ -166,7 +180,9 @@ jobs:
             out/contents.txt
             manager/build/manager.apk
             manager/build/manager.apk.sha256
+            manager/build/dex/classes.dex
             manager/build/manager-contents.txt
+            native/third_party/hook-dependencies.lock
             build/native/file.txt
             build/native/elf-header.txt
             build/native/symbols.txt

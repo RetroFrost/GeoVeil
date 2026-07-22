@@ -5,10 +5,9 @@ import android.content.SharedPreferences;
 
 /** Stores only the manager draft. The native bridge remains the authority for active engine state. */
 final class DraftStore {
-    private static final String PREFS = "geoveil_manager_draft_v1";
+    private static final String PREFS = "geoveil_manager_draft_v2";
 
-    private DraftStore() {
-    }
+    private DraftStore() {}
 
     static GeoState load(Context context) {
         SharedPreferences preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
@@ -23,6 +22,12 @@ final class DraftStore {
         state.bearing = Float.intBitsToFloat(preferences.getInt("bearing", Float.floatToRawIntBits(0.0f)));
         state.accuracy = Float.intBitsToFloat(preferences.getInt("accuracy", Float.floatToRawIntBits(5.0f)));
         state.easyLocationSwitch = preferences.getBoolean("easy_switch", false);
+        state.joystickEnabled = preferences.getBoolean("joystick_enabled", false);
+        state.movementMode = preferences.getInt("movement_mode", NativeBridge.MOVEMENT_WALKING);
+        if (state.movementMode != NativeBridge.MOVEMENT_WALKING
+                && state.movementMode != NativeBridge.MOVEMENT_JOGGING) {
+            state.movementMode = NativeBridge.MOVEMENT_WALKING;
+        }
         return state;
     }
 
@@ -38,6 +43,8 @@ final class DraftStore {
                 .putInt("bearing", Float.floatToRawIntBits(state.bearing))
                 .putInt("accuracy", Float.floatToRawIntBits(state.accuracy))
                 .putBoolean("easy_switch", state.easyLocationSwitch)
+                .putBoolean("joystick_enabled", state.joystickEnabled)
+                .putInt("movement_mode", state.movementMode)
                 .apply();
     }
 

@@ -4,7 +4,7 @@ SKIPUNZIP=0
 
 ui_print "========================================"
 ui_print "              GeoVeil RC2               "
-ui_print "    Experimental parasitic manager      "
+ui_print " Experimental full-engine development  "
 ui_print "========================================"
 ui_print ""
 ui_print "- Architecture: $ARCH"
@@ -18,9 +18,15 @@ ui_print ""
 [ "${ZYGISK_ENABLED:-0}" = "1" ] || abort "! Enable Zygisk in Magisk before installing GeoVeil"
 
 BIN="$MODPATH/zygisk/arm64-v8a.so"
-MANAGER="$MODPATH/manager.apk"
+ENGINE_DEX="$MODPATH/manager.apk"
+MANAGER_UI="$MODPATH/manager-ui.apk"
 [ -s "$BIN" ] || abort "! Missing compiled Zygisk payload; this source tree is not a flashable build"
-[ -s "$MANAGER" ] || abort "! Missing compiled parasitic manager payload"
+[ -s "$ENGINE_DEX" ] || abort "! Missing raw engine DEX payload"
+[ -s "$MANAGER_UI" ] || abort "! Missing parasitic manager UI archive"
+
+DEX_MAGIC=$(head -c 3 "$ENGINE_DEX" 2>/dev/null)
+[ "$DEX_MAGIC" = "dex" ] || abort "! Engine payload is not a raw DEX file"
+unzip -t "$MANAGER_UI" >/dev/null 2>&1 || abort "! Manager UI archive is invalid"
 
 ui_print "- Verifying non-invasive module layout"
 [ -e "$MODPATH/system" ] && abort "! Refusing install: system replacement tree detected"
@@ -54,11 +60,12 @@ set_perm "$MODPATH/service.sh" 0 0 0755
 set_perm "$MODPATH/action.sh" 0 0 0755
 [ -f "$MODPATH/uninstall.sh" ] && set_perm "$MODPATH/uninstall.sh" 0 0 0755
 set_perm "$BIN" 0 0 0644
-set_perm "$MANAGER" 0 0 0644
+set_perm "$ENGINE_DEX" 0 0 0644
+set_perm "$MANAGER_UI" 0 0 0644
 
 ui_print ""
 ui_print "========================================"
 ui_print " Install complete; reboot before use.   "
 ui_print " Use the module Action to open manager. "
-ui_print " Location engine remains pass-through. "
+ui_print " RC2 requires target-device validation. "
 ui_print "========================================"
