@@ -10,6 +10,10 @@ on:
       - main
       - release/geoavil-0.3.0-alpha1
 
+concurrency:
+  group: geoavil-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
