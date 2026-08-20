@@ -28,6 +28,7 @@ jobs:
           git -C geoavil checkout 8502952b815c134be6514d71f0cfb76acd68e7c3
           git -C geoavil apply --binary --verbose ../geoavil.patch
           python3 modernize_geoavil.py geoavil
+          python3 root_system_hook.py geoavil
 
       - name: Set up Java
         uses: actions/setup-java@v4
