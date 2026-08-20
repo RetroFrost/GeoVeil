@@ -62,7 +62,10 @@ jobs:
           set -o pipefail
           APK="$(find geoavil/app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
           test -n "$APK"
-          apksigner verify --verbose --print-certs "$APK" | tee signature-output.log
+          SDK_ROOT="${ANDROID_HOME:-$ANDROID_SDK_ROOT}"
+          APKSIGNER="$SDK_ROOT/build-tools/34.0.0/apksigner"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose --print-certs "$APK" 2>&1 | tee signature-output.log
 
       - name: Stage release files
         if: success()
