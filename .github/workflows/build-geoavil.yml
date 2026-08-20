@@ -71,6 +71,22 @@ jobs:
           cp "$APK" GeoAvil-Android-0.3.0-alpha1.apk
           cp "$APK" GeoAvil-latest.apk
 
+      - name: Capture compact failure log
+        if: always()
+        shell: bash
+        run: |
+          if [ -f build-output.log ]; then
+            {
+              echo '=== compiler/error matches ==='
+              grep -nE '(^|[[:space:]])(error:|FAILURE:|Execution failed|What went wrong|Could not resolve|Manifest merger failed|AAPT: error|Android resource linking failed)' build-output.log | tail -n 120 || true
+              echo
+              echo '=== final 240 lines ==='
+              tail -n 240 build-output.log
+            } > build-failure-tail.txt
+          else
+            echo 'build-output.log was not produced; failure happened before Gradle build step.' > build-failure-tail.txt
+          fi
+
       - name: Capture CI result
         if: always()
         run: |
@@ -82,7 +98,7 @@ jobs:
         run: |
           git config user.name "GeoAvil Builder"
           git config user.email "actions@github.com"
-          git add ci-status.txt
+          git add ci-status.txt build-failure-tail.txt
           test -f build-output.log && git add build-output.log || true
           test -f signature-output.log && git add signature-output.log || true
           test -f GeoAvil-Android-0.3.0-alpha1.apk && git add GeoAvil-Android-0.3.0-alpha1.apk || true
@@ -103,6 +119,7 @@ jobs:
           name: GeoAvil-0.3.0-alpha1-build-info
           path: |
             ci-status.txt
+            build-failure-tail.txt
             build-output.log
             signature-output.log
           if-no-files-found: warn
