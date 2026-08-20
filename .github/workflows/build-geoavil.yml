@@ -1,9 +1,18 @@
-name: Build GeoAvil APK
+name: Build GeoAvil Android
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
   push:
-    branches: [main]
+    branches:
+      - main
+      - release/geoavil-0.3.0-alpha1
+
+concurrency:
+  group: geoavil-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -12,16 +21,18 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    if: "github.event_name == 'pull_request' || !contains(github.event.head_commit.message, '[skip ci]')"
     steps:
-      - name: Checkout patch repo
+      - name: Checkout release repo
         uses: actions/checkout@v4
 
-      - name: Prepare FakeGPS source
+      - name: Prepare GeoAvil source
         run: |
           git clone https://github.com/xiangtailiang/FakeGPS.git geoavil
           git -C geoavil checkout 8502952b815c134be6514d71f0cfb76acd68e7c3
           git -C geoavil apply --binary --verbose ../geoavil.patch
+          python3 modernize_geoavil.py geoavil
+          python3 root_system_hook.py geoavil
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -37,36 +48,71 @@ jobs:
           yes | sdkmanager --licenses >/dev/null 2>&1 || true
           sdkmanager "platforms;android-34" "build-tools;34.0.0"
 
-      - name: Build GeoAvil
+      - name: Build signed release APK
         working-directory: geoavil
+        shell: bash
         run: |
+          set -o pipefail
           chmod +x ./gradlew
-          ./gradlew :app:assembleDebug --stacktrace --info 2>&1 | tee ../build-output.log
+          ./gradlew :app:assembleRelease --stacktrace --info 2>&1 | tee ../build-output.log
 
-      - name: Publish direct APK file
+      - name: Verify APK signature
+        shell: bash
+        run: |
+          set -o pipefail
+          APK="$(find geoavil/app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
+          test -n "$APK"
+          apksigner verify --verbose --print-certs "$APK" | tee signature-output.log
+
+      - name: Stage release files
         if: success()
         run: |
-          cp geoavil/app/build/outputs/apk/debug/*.apk GeoAvil-patched-app.apk
+          APK="$(find geoavil/app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
+          cp "$APK" GeoAvil-Android-0.3.0-alpha1.apk
+          cp "$APK" GeoAvil-latest.apk
+
+      - name: Capture CI result
+        if: always()
+        run: |
+          printf 'event=%s\nref=%s\nsha=%s\nstatus=%s\n' \
+            '${{ github.event_name }}' '${{ github.ref }}' '${{ github.sha }}' '${{ job.status }}' > ci-status.txt
+
+      - name: Publish release or failure diagnostics
+        if: always() && github.event_name != 'pull_request'
+        run: |
           git config user.name "GeoAvil Builder"
           git config user.email "actions@github.com"
-          git add GeoAvil-patched-app.apk build-output.log
-          git commit -m "Publish patched GeoAvil APK [skip ci]"
-          git push
+          git add ci-status.txt
+          test -f build-output.log && git add build-output.log || true
+          test -f signature-output.log && git add signature-output.log || true
+          test -f GeoAvil-Android-0.3.0-alpha1.apk && git add GeoAvil-Android-0.3.0-alpha1.apk || true
+          test -f GeoAvil-latest.apk && git add GeoAvil-latest.apk || true
+          if ! git diff --cached --quiet; then
+            if [ -f GeoAvil-Android-0.3.0-alpha1.apk ]; then
+              git commit -m "Publish GeoAvil Android 0.3.0-alpha1 [skip ci]"
+            else
+              git commit -m "Publish GeoAvil 0.3.0-alpha1 build diagnostics [skip ci]"
+            fi
+            git push
+          fi
 
-      - name: Upload build log
+      - name: Upload build diagnostics
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GeoAvil-build-log
-          path: build-output.log
+          name: GeoAvil-0.3.0-alpha1-build-info
+          path: |
+            ci-status.txt
+            build-output.log
+            signature-output.log
           if-no-files-found: warn
           retention-days: 30
 
-      - name: Upload APK
+      - name: Upload release APK
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: GeoAvil-mock-status-tester
-          path: GeoAvil-patched-app.apk
+          name: GeoAvil-Android-0.3.0-alpha1
+          path: GeoAvil-Android-0.3.0-alpha1.apk
           if-no-files-found: error
           retention-days: 30

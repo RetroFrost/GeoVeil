@@ -1,0 +1,4 @@
+event=push
+ref=refs/heads/release/geoavil-0.3.0-alpha1
+sha=595873a312bf1516bbd72e2b8570edee3f4a5079
+status=failure
