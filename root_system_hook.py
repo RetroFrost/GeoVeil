@@ -18,9 +18,12 @@ def replace(path: Path, old: str, new: str):
     path.write_text(text.replace(old, new), encoding="utf-8")
 
 
-# Modern libxposed API is compile-only: LSPosed supplies it inside system_server.
+# Shizuku 13.1.5 declares API 24 as its supported floor.
 build = APP / "build.gradle"
 text = build.read_text(encoding="utf-8")
+text = text.replace("        minSdk 23\n", "        minSdk 24\n")
+
+# Modern libxposed API is compile-only: LSPosed supplies it inside system_server.
 if "io.github.libxposed:api" not in text:
     text = text.replace(
         "    implementation 'dev.rikka.shizuku:provider:13.1.5'\n",
