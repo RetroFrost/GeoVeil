@@ -120,6 +120,7 @@ public class JoyStickView extends FrameLayout {
                         Toast.LENGTH_LONG).show();
                 return;
             }
+            if (mWindowManager == null) return;
             mWindowManager.addView(this, mWindowLayoutParams);
             isShowing = true;
         } catch (Throwable t) {
@@ -134,7 +135,7 @@ public class JoyStickView extends FrameLayout {
     public void removeFromWindow() {
         if (!isShowing) return;
         try {
-            mWindowManager.removeView(this);
+            if (mWindowManager != null) mWindowManager.removeView(this);
         } catch (Throwable t) {
             Logger.e(TAG, "Unable to remove analog overlay", t);
         } finally {
@@ -183,12 +184,53 @@ public class JoyStickView extends FrameLayout {
         mWindowLayoutParams.x = (int) (mXInScreen - mXInView);
         mWindowLayoutParams.y = (int) (mYInScreen - mYInView);
         try {
-            if (isShowing) mWindowManager.updateViewLayout(this, mWindowLayoutParams);
+            if (isShowing && mWindowManager != null) {
+                mWindowManager.updateViewLayout(this, mWindowLayoutParams);
+            }
         } catch (Throwable t) {
             Logger.e(TAG, "Unable to move analog overlay", t);
         }
     }
 }
 ''')
+
+# alpha1 created the overlay outside any guard. Catch constructor/inflation failures too,
+# but keep the exact same synchronous lifecycle and backend behaviour.
+manager = APP / "src/main/java/com/github/fakegps/JoyStickManager.java"
+m = manager.read_text(encoding="utf-8")
+old_show = '''    public void showJoyStick() {
+        if (mJoyStickView == null) {
+            mJoyStickView = new JoyStickView(mContext);
+            mJoyStickView.setJoyStickPresenter(this);
+        }
+
+        if (!mJoyStickView.isShowing()) {
+            mJoyStickView.addToWindow();
+        }
+    }
+'''
+new_show = '''    public void showJoyStick() {
+        try {
+            if (mJoyStickView == null) {
+                mJoyStickView = new JoyStickView(mContext);
+                mJoyStickView.setJoyStickPresenter(this);
+            }
+
+            if (!mJoyStickView.isShowing()) {
+                mJoyStickView.addToWindow();
+            }
+        } catch (Throwable t) {
+            Logger.e(TAG, "Failed to create/show analog controller", t);
+            mJoyStickView = null;
+            Toast.makeText(mContext,
+                    "Analog controller could not start. Location spoofing will keep running.",
+                    Toast.LENGTH_LONG).show();
+        }
+    }
+'''
+if old_show not in m:
+    raise SystemExit("Expected alpha1 JoyStickManager.showJoyStick() not found")
+m = m.replace(old_show, new_show)
+manager.write_text(m, encoding="utf-8")
 
 print("GeoAvil alpha3 minimal regression fix applied")
