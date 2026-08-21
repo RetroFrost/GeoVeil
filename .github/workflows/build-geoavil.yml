@@ -8,7 +8,7 @@ on:
   push:
     branches:
       - main
-      - release/geoavil-0.3.0-alpha1
+      - release/geoavil-0.3.0-alpha2
 
 concurrency:
   group: geoavil-${{ github.ref }}
@@ -33,6 +33,7 @@ jobs:
           git -C geoavil apply --binary --verbose ../geoavil.patch
           python3 modernize_geoavil.py geoavil
           python3 root_system_hook.py geoavil
+          python3 fix_shizuku_analog.py geoavil
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -71,7 +72,7 @@ jobs:
         if: success()
         run: |
           APK="$(find geoavil/app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)"
-          cp "$APK" GeoAvil-Android-0.3.0-alpha1.apk
+          cp "$APK" GeoAvil-Android-0.3.0-alpha2.apk
           cp "$APK" GeoAvil-latest.apk
 
       - name: Capture compact failure log
@@ -104,13 +105,13 @@ jobs:
           git add ci-status.txt build-failure-tail.txt
           test -f build-output.log && git add build-output.log || true
           test -f signature-output.log && git add signature-output.log || true
-          test -f GeoAvil-Android-0.3.0-alpha1.apk && git add GeoAvil-Android-0.3.0-alpha1.apk || true
+          test -f GeoAvil-Android-0.3.0-alpha2.apk && git add GeoAvil-Android-0.3.0-alpha2.apk || true
           test -f GeoAvil-latest.apk && git add GeoAvil-latest.apk || true
           if ! git diff --cached --quiet; then
-            if [ -f GeoAvil-Android-0.3.0-alpha1.apk ]; then
-              git commit -m "Publish GeoAvil Android 0.3.0-alpha1 [skip ci]"
+            if [ -f GeoAvil-Android-0.3.0-alpha2.apk ]; then
+              git commit -m "Publish GeoAvil Android 0.3.0-alpha2 [skip ci]"
             else
-              git commit -m "Publish GeoAvil 0.3.0-alpha1 build diagnostics [skip ci]"
+              git commit -m "Publish GeoAvil 0.3.0-alpha2 build diagnostics [skip ci]"
             fi
             git push
           fi
@@ -119,7 +120,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: GeoAvil-0.3.0-alpha1-build-info
+          name: GeoAvil-0.3.0-alpha2-build-info
           path: |
             ci-status.txt
             build-failure-tail.txt
@@ -132,7 +133,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: GeoAvil-Android-0.3.0-alpha1
-          path: GeoAvil-Android-0.3.0-alpha1.apk
+          name: GeoAvil-Android-0.3.0-alpha2
+          path: GeoAvil-Android-0.3.0-alpha2.apk
           if-no-files-found: error
           retention-days: 30
