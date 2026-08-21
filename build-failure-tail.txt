@@ -52,10 +52,10 @@ Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.1
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/7568882650653a7ade4897364f61d620/transformed/core-common-2.2.0 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/0e7555b5ff685cfb6a4bf2c83ad787b7/transformed/documentfile-1.0.0-runtime because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/842986251eba5028e5c9dc6f17ef0262/transformed/jetified-tracing-1.0.0-runtime because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/842986251eba5028e5c9dc6f17ef0262/transformed/jetified-tracing-1.0.0-runtime because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/0e7555b5ff685cfb6a4bf2c83ad787b7/transformed/documentfile-1.0.0-runtime because:
   Build cache is disabled
   Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/705c2e19189cbf960ea1fa4bc0c1ace2/transformed/jetified-annotation-experimental-1.4.0-runtime because:
@@ -64,25 +64,25 @@ Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.1
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/eac14060ed02578e9cb05ffecaca5dd0/transformed/print-1.0.0-runtime because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/87f7116bc09b4739530e2ea546a728d3/transformed/jetified-kotlinx-coroutines-core-jvm-1.6.4 because:
-  Build cache is disabled
-  Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/6f913947eb2d2b6cf2cd6c610d318d6c/transformed/jetified-annotation-jvm-1.6.0 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/e5b94f9c3e0e8b86361e581537cd52c8/transformed/jetified-kotlin-stdlib-jdk8-1.8.22 because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/87f7116bc09b4739530e2ea546a728d3/transformed/jetified-kotlinx-coroutines-core-jvm-1.6.4 because:
   Build cache is disabled
   Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3256a10fd62dd6bd6c2d5ef2f9ffdc2e/transformed/jetified-kotlinx-coroutines-android-1.6.4 because:
   Build cache is disabled
   Caching not enabled.
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/e5b94f9c3e0e8b86361e581537cd52c8/transformed/jetified-kotlin-stdlib-jdk8-1.8.22 because:
+  Build cache is disabled
+  Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3ab4f96847a73395cbe16793c0b02a3f/transformed/jetified-kotlin-stdlib-jdk7-1.8.22 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/5badd0837f5ec006b5d4813dd190b9ac/transformed/jetified-error_prone_annotations-2.15.0 because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/9d6649f3710cda1cc1a8439067353a29/transformed/jetified-kotlin-stdlib-1.8.22 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/9d6649f3710cda1cc1a8439067353a29/transformed/jetified-kotlin-stdlib-1.8.22 because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/5badd0837f5ec006b5d4813dd190b9ac/transformed/jetified-error_prone_annotations-2.15.0 because:
   Build cache is disabled
   Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/f3b74f226c0f5c702660ed2f5e70a53a/transformed/jetified-aidl-13.1.5-runtime because:
@@ -94,10 +94,10 @@ Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.1
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/59f839a76105fbe37f98695532ab478f/transformed/jetified-kotlin-stdlib-common-1.8.22 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/c5d652573441e20919d1b07756266c10/transformed/constraintlayout-solver-2.0.1 because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/615e63413416288b63f277a53d4c7520/transformed/jetified-annotations-13.0 because:
   Build cache is disabled
   Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/615e63413416288b63f277a53d4c7520/transformed/jetified-annotations-13.0 because:
+Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/c5d652573441e20919d1b07756266c10/transformed/constraintlayout-solver-2.0.1 because:
   Build cache is disabled
   Caching not enabled.
 Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3f712c2092ef0ffab2fb5a13a99a9799/transformed/constraintlayout-2.0.1-runtime because:
@@ -163,16 +163,16 @@ The input changes require a full rebuild for incremental task ':app:mergeDexRele
 file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
 file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
 Merging to '/home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/dex/release/mergeDexRelease' with D8 from all or a subset of dex files in /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/external_libs_dex/release/mergeExtDexRelease, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out/3d6712745483792724a27ce0f8eee614cbf26d48c3b44d8727e36e25eb3121f3_0.jar, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out/3d6712745483792724a27ce0f8eee614cbf26d48c3b44d8727e36e25eb3121f3_1.jar, and from all global synthetics files in 
-Resolve mutations for :app:compileReleaseArtProfile (Thread[Execution worker Thread 3,5,main]) started.
-:app:compileReleaseArtProfile (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:compileReleaseArtProfile (Thread[Execution worker Thread 2,5,main]) started.
+:app:compileReleaseArtProfile (Thread[Execution worker Thread 2,5,main]) started.
 
 > Task :app:compileReleaseArtProfile
 Caching disabled for task ':app:compileReleaseArtProfile' because:
   Build cache is disabled
 Task ':app:compileReleaseArtProfile' is not up-to-date because:
   No history is available.
-Resolve mutations for :app:packageRelease (Thread[Execution worker Thread 3,5,main]) started.
-:app:packageRelease (Thread[Execution worker Thread 3,5,main]) started.
+Resolve mutations for :app:packageRelease (Thread[Execution worker Thread 2,5,main]) started.
+:app:packageRelease (Thread[Execution worker Thread 2,5,main]) started.
 
 > Task :app:packageRelease
 Custom actions are attached to task ':app:packageRelease'.
@@ -204,8 +204,8 @@ Caching disabled for task ':app:lintVitalReportRelease' because:
 Task ':app:lintVitalReportRelease' is not up-to-date because:
   No history is available.
 Android Lint: Reusing lint classloader 31.7.3_false
-Resolve mutations for :app:lintVitalRelease (Thread[Execution worker Thread 3,5,main]) started.
-:app:lintVitalRelease (Thread[Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:lintVitalRelease (Thread[included builds,5,main]) started.
+:app:lintVitalRelease (Thread[included builds,5,main]) started.
 
 > Task :app:lintVitalRelease
 Caching disabled for task ':app:lintVitalRelease' because:
@@ -229,8 +229,8 @@ Task ':app:lintVitalRelease' is not up-to-date because:
 
 2 errors, 0 warnings
 
-Resolve mutations for :app:assembleRelease (Thread[Execution worker Thread 2,5,main]) started.
-:app:assembleRelease (Thread[Execution worker Thread 2,5,main]) started.
+Resolve mutations for :app:assembleRelease (Thread[included builds,5,main]) started.
+:app:assembleRelease (Thread[included builds,5,main]) started.
 
 > Task :app:assembleRelease
 Skipping task ':app:assembleRelease' as it has no actions.
@@ -239,5 +239,5 @@ AAPT2 aapt2-8.7.3-12006047-linux Daemon #1: shutdown
 Android Lint: Disposing Uast application environment in lint classloader [31.7.3_false]
 [Incubating] Problems report is available at: file:///home/runner/work/GeoVeil/GeoVeil/geoavil/build/reports/problems/problems-report.html
 
-BUILD SUCCESSFUL in 1m 43s
+BUILD SUCCESSFUL in 1m 38s
 79 actionable tasks: 79 executed
