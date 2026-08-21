@@ -1,4 +1,4 @@
 event=push
-ref=refs/heads/main
-sha=c0b312e4d3601d816690453c22d2fb3cea84e7a6
+ref=refs/heads/release/geoavil-0.3.0-alpha5
+sha=80827f4a0fcec754041ad692e92699f0524d1748
 status=success
