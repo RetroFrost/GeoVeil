@@ -171,13 +171,13 @@ if 'freshGeoAvilLocation' not in mat:
     mat = mat.replace(marker, check, 1)
     before_found = '            if (!foundLocation) {\n'
     verification = '''            if (RootBridge.rootSanitizerExpected() && JoyStickManager.get().isStarted()) {
-                builder.append("\nSystem hook effect: ");
+                builder.append("\\nSystem hook effect: ");
                 if (freshGeoAvilNonMock) {
-                    builder.append("verified — fresh GeoAvil location isMock=false\n");
+                    builder.append("verified — fresh GeoAvil location isMock=false\\n");
                 } else if (freshGeoAvilLocation) {
-                    builder.append("not effective — fresh GeoAvil location is still mock\n");
+                    builder.append("not effective — fresh GeoAvil location is still mock\\n");
                 } else {
-                    builder.append("waiting for a fresh GeoAvil location\n");
+                    builder.append("waiting for a fresh GeoAvil location\\n");
                 }
             }
 
