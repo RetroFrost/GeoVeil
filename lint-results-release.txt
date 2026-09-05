@@ -10,37 +10,6 @@
    listen to updates, use androidx.core.view.WindowInsetsCompat and related
    APIs.
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
-            if (!process.waitFor(4, TimeUnit.SECONDS)) {
-                         ~~~~~~~
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ShizukuLocationService.java:70: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
-            if (!process.waitFor(4, TimeUnit.SECONDS)) {
-                         ~~~~~~~
-
-   Explanation for issues of type "NewApi":
-   This check scans through all the Android API calls in the application and
-   warns about any calls that are not available on all versions targeted by
-   this application (according to its minimum SDK attribute in the manifest).
-
-   If you really want to use this API and don't need to support older devices
-   just set the minSdkVersion in your build.gradle or AndroidManifest.xml
-   files.
-
-   If your code is deliberately accessing newer APIs, and you have ensured
-   (e.g. with conditional execution) that this code will only ever be called
-   on a supported platform, then you can annotate your class or method with
-   the @TargetApi annotation specifying the local minimum SDK to apply, such
-   as @TargetApi(11), such that this check considers 11 rather than your
-   manifest file's minimum SDK as the required API level.
-
-   If you are deliberately setting android: attributes in style definitions,
-   make sure you place this in a values-vNN folder in order to avoid running
-   into runtime conflicts on certain devices where manufacturers have added
-   custom attributes whose ids conflict with the new ones on later platforms.
-
-   Similarly, you can use tools:targetApi="11" in an XML file to indicate that
-   the element will only be inflated in an adequate context.
-
 /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build.gradle:10: Warning: Not targeting the latest versions of Android; compatibility modes apply. Consider testing and updating this version. Consult the android.os.Build.VERSION_CODES javadoc for details. [OldTargetApi]
         targetSdk 34
         ~~~~~~~~~~~~
@@ -80,43 +49,6 @@
    changes, since there are no guarantees for compatibility).
 
    https://developer.android.com/preview/restrictions-non-sdk-interfaces
-
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/LocationThread.java:91: Error: Must be one of: ProviderProperties.ACCURACY_FINE, ProviderProperties.ACCURACY_COARSE [WrongConstant]
-                            true, true, android.location.Criteria.POWER_LOW, android.location.Criteria.ACCURACY_FINE);
-                                                                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/LocationThread.java:91: Error: Must be one of: ProviderProperties.POWER_USAGE_LOW, ProviderProperties.POWER_USAGE_MEDIUM, ProviderProperties.POWER_USAGE_HIGH [WrongConstant]
-                            true, true, android.location.Criteria.POWER_LOW, android.location.Criteria.ACCURACY_FINE);
-                                        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   Explanation for issues of type "WrongConstant":
-   Ensures that when parameter in a method only allows a specific set of
-   constants, calls obey those rules.
-
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/res/menu/main_menu.xml:6: Error: Should use app:showAsAction with the appcompat library with xmlns:app="http://schemas.android.com/apk/res-auto" [AppCompatResource]
-        android:showAsAction="never" />
-        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   Explanation for issues of type "AppCompatResource":
-   When using the appcompat library, menu resources should refer to the
-   showAsAction (or actionViewClass, or actionProviderClass) in the app:
-   namespace, not the android: namespace.
-
-   Similarly, when not using the appcompat library, you should be using the
-   android:showAsAction (or actionViewClass, or actionProviderClass)
-   attribute.
-
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickButton.java:14: Error: This custom view should extend androidx.appcompat.widget.AppCompatImageButton instead [AppCompatCustomView]
-public class JoyStickButton extends ImageButton {
-                                    ~~~~~~~~~~~
-
-   Explanation for issues of type "AppCompatCustomView":
-   In order to support features such as tinting, the appcompat library will
-   automatically load special appcompat replacements for the builtin widgets.
-   However, this does not work for your own custom views.
-
-   Instead of extending the android.widget classes directly, you should
-   instead extend one of the delegate classes in
-   androidx.appcompat.widget.AppCompatTextView.
 
 /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build.gradle:61: Warning: A newer version of androidx.appcompat:appcompat than 1.7.0 is available: 1.8.0 [GradleDependency]
     implementation 'androidx.appcompat:appcompat:1.7.0'
@@ -450,10 +382,10 @@ public class JoyStickButton extends ImageButton {
 
    https://developer.android.com/guide/topics/text/autofill.html
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickButton.java:29: Warning: Custom view JoyStickButton overrides onTouchEvent but not performClick [ClickableViewAccessibility]
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickButton.java:19: Warning: JoyStickButton#onTouchEvent should call JoyStickButton#performClick when a click is detected [ClickableViewAccessibility]
     public boolean onTouchEvent(MotionEvent event) {
                    ~~~~~~~~~~~~
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickView.java:105: Warning: Custom view JoyStickView overrides onTouchEvent but not performClick [ClickableViewAccessibility]
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickView.java:105: Warning: JoyStickView#onTouchEvent should call JoyStickView#performClick when a click is detected [ClickableViewAccessibility]
     @Override public boolean onTouchEvent(MotionEvent event) {
                              ~~~~~~~~~~~~
 
@@ -571,7 +503,7 @@ public class JoyStickButton extends ImageButton {
 /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/res/layout/joystick_layout.xml:71: Warning: Hardcoded string "Hide", should use @string resource [HardcodedText]
             android:text="Hide"
             ~~~~~~~~~~~~~~~~~~~
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/res/menu/main_menu.xml:5: Warning: Hardcoded string "Mock status tester", should use @string resource [HardcodedText]
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/res/menu/main_menu.xml:6: Warning: Hardcoded string "Mock status tester", should use @string resource [HardcodedText]
         android:title="Mock status tester"
         ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -612,4 +544,4 @@ public class JoyStickButton extends ImageButton {
    the left bitmask. Therefore, you can use gravity="start" rather than
    gravity="left|start".)
 
-6 errors, 93 warnings
+0 errors, 93 warnings
