@@ -28,9 +28,10 @@ app_build = APP / "build.gradle"
 abt = app_build.read_text(encoding="utf-8")
 abt = abt.replace("compileSdk 34", "compileSdk 36")
 abt = abt.replace("targetSdk 34", "targetSdk 36")
-abt = abt.replace("androidx.appcompat:appcompat:1.7.0", "androidx.appcompat:appcompat:1.8.0")
-abt = abt.replace("androidx.core:core:1.13.1", "androidx.core:core:1.19.0")
-abt = abt.replace("com.google.android.material:material:1.12.0", "com.google.android.material:material:1.14.0")
+# Keep the known-good AppCompat/Material versions from alpha5/alpha6 and only update
+# AndroidX Core to the newest line compatible with API 36/AGP 8.10. Core 1.19 targets
+# API 37 and requires AGP 9.1+, which is the Android 17 preview toolchain.
+abt = abt.replace("androidx.core:core:1.13.1", "androidx.core:core:1.16.0")
 app_build.write_text(abt, encoding="utf-8")
 
 # The old status-bar reflection helper is no longer used by the overlay and is incorrect
