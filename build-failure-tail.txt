@@ -1,13 +1,21 @@
 === compiler/error matches ===
-139:Lint found 9 errors, 93 warnings. First failure:
+139:Lint found 6 errors, 93 warnings. First failure:
 149:FAILURE: Build failed with an exception.
 151:* What went wrong:
 152:Execution failed for task ':app:lintRelease'.
 153:> Lint found errors in the project; aborting build.
-166:  Lint found 9 errors, 93 warnings. First failure:
+166:  Lint found 6 errors, 93 warnings. First failure:
 181:org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:lintRelease'.
 213:Caused by: java.lang.RuntimeException: Lint found errors in the project; aborting build.
-226:Lint found 9 errors, 93 warnings. First failure:
+226:Lint found 6 errors, 93 warnings. First failure:
+
+=== lint errors ===
+13:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+16:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ShizukuLocationService.java:70: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+84:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/LocationThread.java:91: Error: Must be one of: ProviderProperties.ACCURACY_FINE, ProviderProperties.ACCURACY_COARSE [WrongConstant]
+87:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/LocationThread.java:91: Error: Must be one of: ProviderProperties.POWER_USAGE_LOW, ProviderProperties.POWER_USAGE_MEDIUM, ProviderProperties.POWER_USAGE_HIGH [WrongConstant]
+95:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/res/menu/main_menu.xml:6: Error: Should use app:showAsAction with the appcompat library with xmlns:app="http://schemas.android.com/apk/res-auto" [AppCompatResource]
+108:/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/ui/JoyStickButton.java:14: Error: This custom view should extend androidx.appcompat.widget.AppCompatImageButton instead [AppCompatCustomView]
 
 === final 280 lines ===
 > Task :loggerlibrary:generateReleaseAssets UP-TO-DATE
@@ -46,18 +54,18 @@
 > Task :app:mergeReleaseAssets
 > Task :app:compressReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
-> Task :app:mergeDexRelease
 > Task :app:lintVitalAnalyzeRelease
 > Task :app:lintVitalReportRelease SKIPPED
 > Task :app:lintVitalRelease SKIPPED
-> Task :app:compileReleaseArtProfile
-> Task :app:mergeReleaseJavaResource
-> Task :app:collectReleaseDependencies
+> Task :app:mergeDexRelease
 > Task :app:optimizeReleaseResources
+> Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
 > Task :app:validateSigningRelease
+> Task :app:compileReleaseArtProfile
 > Task :app:writeReleaseAppMetadata
 > Task :app:writeReleaseSigningConfigVersions
+> Task :app:mergeReleaseJavaResource
 > Task :app:packageRelease
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
@@ -67,11 +75,11 @@
 Wrote HTML report to file:///home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/reports/lint-results-release.html
 
 > Task :app:lintRelease FAILED
-Lint found 9 errors, 93 warnings. First failure:
+Lint found 6 errors, 93 warnings. First failure:
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                 ~~~~~~~~~~~~~~
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+            if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                         ~~~~~~~
 
 The full lint text report is located at:
   /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -94,11 +102,11 @@ Execution failed for task ':app:lintRelease'.
   ```
   For more details, see https://developer.android.com/studio/write/lint#snapshot
   
-  Lint found 9 errors, 93 warnings. First failure:
+  Lint found 6 errors, 93 warnings. First failure:
   
-  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-              hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                   ~~~~~~~~~~~~~~
+  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+              if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                           ~~~~~~~
   
   The full lint text report is located at:
     /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -154,11 +162,11 @@ android {
 ```
 For more details, see https://developer.android.com/studio/write/lint#snapshot
 
-Lint found 9 errors, 93 warnings. First failure:
+Lint found 6 errors, 93 warnings. First failure:
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                 ~~~~~~~~~~~~~~
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+            if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                         ~~~~~~~
 
 The full lint text report is located at:
   /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -288,5 +296,5 @@ The full lint text report is located at:
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 1m 22s
+BUILD FAILED in 1m 44s
 91 actionable tasks: 91 executed

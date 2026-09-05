@@ -19,8 +19,8 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :loggerlibrary:preReleaseBuild UP-TO-DATE
 > Task :app:generateReleaseResValues
 > Task :app:javaPreCompileRelease
-> Task :loggerlibrary:generateReleaseResValues
 > Task :loggerlibrary:writeReleaseAarMetadata
+> Task :loggerlibrary:generateReleaseResValues
 > Task :loggerlibrary:generateReleaseResources
 > Task :app:checkReleaseAarMetadata
 > Task :loggerlibrary:packageReleaseResources
@@ -35,18 +35,12 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 > Task :loggerlibrary:compileReleaseLibraryResources
 > Task :loggerlibrary:javaPreCompileRelease
 > Task :app:preReleaseUnitTestBuild UP-TO-DATE
-> Task :app:javaPreCompileReleaseUnitTest
 > Task :loggerlibrary:parseReleaseLocalResources
+> Task :app:javaPreCompileReleaseUnitTest
 > Task :app:parseReleaseLocalResources
-> Task :app:processReleaseJavaRes
-> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
-> Task :loggerlibrary:processReleaseJavaRes NO-SOURCE
-> Task :app:extractProguardFiles
-> Task :loggerlibrary:extractProguardFiles
-> Task :loggerlibrary:prepareLintJarForPublish
 > Task :loggerlibrary:processReleaseManifest
+> Task :app:processReleaseJavaRes
 > Task :loggerlibrary:generateReleaseRFile
-> Task :loggerlibrary:mergeReleaseJniLibFolders
 
 > Task :app:processReleaseMainManifest
 /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/AndroidManifest.xml:54:9-61:51 Warning:
@@ -54,27 +48,33 @@ Starting a Gradle Daemon (subsequent builds will be faster)
 
 > Task :app:processReleaseManifest
 > Task :loggerlibrary:compileReleaseJavaWithJavac
-> Task :loggerlibrary:bundleLibCompileToJarRelease
-> Task :loggerlibrary:bundleLibRuntimeToJarRelease
-> Task :loggerlibrary:generateReleaseLintModel
-> Task :loggerlibrary:createFullJarRelease
 > Task :app:processReleaseManifestForPackage
-> Task :loggerlibrary:mergeReleaseNativeLibs NO-SOURCE
-> Task :loggerlibrary:stripReleaseDebugSymbols NO-SOURCE
-> Task :loggerlibrary:copyReleaseJniLibsProjectAndLocalJars
-> Task :loggerlibrary:extractDeepLinksForAarRelease
+> Task :loggerlibrary:bundleLibCompileToJarRelease
+> Task :app:processReleaseUnitTestJavaRes NO-SOURCE
+> Task :loggerlibrary:processReleaseJavaRes NO-SOURCE
+> Task :loggerlibrary:bundleLibRuntimeToJarRelease
+> Task :app:extractProguardFiles
+> Task :loggerlibrary:createFullJarRelease
+> Task :loggerlibrary:extractProguardFiles
 > Task :app:processReleaseResources
-> Task :loggerlibrary:extractReleaseAnnotations
+> Task :loggerlibrary:generateReleaseLintModel
 
 > Task :app:compileReleaseJavaWithJavac
 Note: Some input files use or override a deprecated API.
 Note: Recompile with -Xlint:deprecation for details.
 
+> Task :loggerlibrary:prepareLintJarForPublish
 > Task :app:bundleReleaseClassesToRuntimeJar
 > Task :app:bundleReleaseClassesToCompileJar
-> Task :app:generateReleaseLintReportModel
+> Task :loggerlibrary:mergeReleaseJniLibFolders
 > Task :app:compileReleaseUnitTestJavaWithJavac
 > Task :app:testReleaseUnitTest
+> Task :app:generateReleaseLintReportModel
+> Task :loggerlibrary:mergeReleaseNativeLibs NO-SOURCE
+> Task :loggerlibrary:stripReleaseDebugSymbols NO-SOURCE
+> Task :loggerlibrary:extractDeepLinksForAarRelease
+> Task :loggerlibrary:copyReleaseJniLibsProjectAndLocalJars
+> Task :loggerlibrary:extractReleaseAnnotations
 > Task :loggerlibrary:mergeReleaseGeneratedProguardFiles
 > Task :loggerlibrary:mergeReleaseConsumerProguardFiles
 > Task :loggerlibrary:mergeReleaseShaders
@@ -115,18 +115,18 @@ Note: Recompile with -Xlint:deprecation for details.
 > Task :app:mergeReleaseAssets
 > Task :app:compressReleaseAssets
 > Task :app:extractReleaseVersionControlInfo
-> Task :app:mergeDexRelease
 > Task :app:lintVitalAnalyzeRelease
 > Task :app:lintVitalReportRelease SKIPPED
 > Task :app:lintVitalRelease SKIPPED
-> Task :app:compileReleaseArtProfile
-> Task :app:mergeReleaseJavaResource
-> Task :app:collectReleaseDependencies
+> Task :app:mergeDexRelease
 > Task :app:optimizeReleaseResources
+> Task :app:collectReleaseDependencies
 > Task :app:sdkReleaseDependencyData
 > Task :app:validateSigningRelease
+> Task :app:compileReleaseArtProfile
 > Task :app:writeReleaseAppMetadata
 > Task :app:writeReleaseSigningConfigVersions
+> Task :app:mergeReleaseJavaResource
 > Task :app:packageRelease
 > Task :app:createReleaseApkListingFileRedirect
 > Task :app:assembleRelease
@@ -136,11 +136,11 @@ Note: Recompile with -Xlint:deprecation for details.
 Wrote HTML report to file:///home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/reports/lint-results-release.html
 
 > Task :app:lintRelease FAILED
-Lint found 9 errors, 93 warnings. First failure:
+Lint found 6 errors, 93 warnings. First failure:
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                 ~~~~~~~~~~~~~~
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+            if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                         ~~~~~~~
 
 The full lint text report is located at:
   /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -163,11 +163,11 @@ Execution failed for task ':app:lintRelease'.
   ```
   For more details, see https://developer.android.com/studio/write/lint#snapshot
   
-  Lint found 9 errors, 93 warnings. First failure:
+  Lint found 6 errors, 93 warnings. First failure:
   
-  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-              hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                   ~~~~~~~~~~~~~~
+  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+              if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                           ~~~~~~~
   
   The full lint text report is located at:
     /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -223,11 +223,11 @@ android {
 ```
 For more details, see https://developer.android.com/studio/write/lint#snapshot
 
-Lint found 9 errors, 93 warnings. First failure:
+Lint found 6 errors, 93 warnings. First failure:
 
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
-            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
-                 ~~~~~~~~~~~~~~
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/RootBridge.java:250: Error: Call requires API level 26 (current min is 24): java.lang.Process#waitFor [NewApi]
+            if (!process.waitFor(4, TimeUnit.SECONDS)) {
+                         ~~~~~~~
 
 The full lint text report is located at:
   /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
@@ -357,5 +357,5 @@ The full lint text report is located at:
 	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
 
 
-BUILD FAILED in 1m 22s
+BUILD FAILED in 1m 44s
 91 actionable tasks: 91 executed
