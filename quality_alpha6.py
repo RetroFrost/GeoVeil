@@ -28,22 +28,54 @@ xt = xt.replace('    @Override public void onPackageReady(@NonNull PackageReadyP
                 '    @SuppressLint("NewApi")\n    @Override public void onPackageReady(@NonNull PackageReadyParam param) {')
 xposed.write_text(xt, encoding="utf-8")
 
-# Process.destroyForcibly() is API 26; the app supports API 24. A normal destroy is
-# sufficient after the bounded wait and preserves the declared minSdk.
-for rel in [
-    "src/main/java/com/github/fakegps/ShizukuLocationService.java",
-    "src/main/java/com/github/fakegps/RootBridge.java",
+# Process.destroyForcibly() and Process.waitFor(timeout, unit) are API 26; GeoAvil's
+# minSdk is 24. Use exitValue() polling against System.nanoTime() for a real bounded wait
+# that works on every supported Android release.
+for rel, marker in [
+    ("src/main/java/com/github/fakegps/ShizukuLocationService.java", "    private static boolean run(String command) {\n"),
+    ("src/main/java/com/github/fakegps/RootBridge.java", "    private static boolean runRoot(String command) {\n"),
 ]:
     p = APP / rel
-    t = p.read_text(encoding="utf-8").replace("process.destroyForcibly();", "process.destroy();")
+    t = p.read_text(encoding="utf-8")
+    t = t.replace("process.destroyForcibly();", "process.destroy();")
+    t = t.replace("if (!process.waitFor(4, TimeUnit.SECONDS)) {", "if (!waitForProcess(process, 4000L)) {")
+    if "private static boolean waitForProcess(Process process, long timeoutMs)" not in t:
+        helper = '''    private static boolean waitForProcess(Process process, long timeoutMs) {
+        long deadline = System.nanoTime() + timeoutMs * 1_000_000L;
+        while (System.nanoTime() < deadline) {
+            try {
+                process.exitValue();
+                return true;
+            } catch (IllegalThreadStateException stillRunning) {
+                try {
+                    Thread.sleep(20L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    return false;
+                }
+            }
+        }
+        return false;
+    }
+
+'''
+        if marker not in t:
+            raise SystemExit(f"Could not add API-24 process wait helper to {p}")
+        t = t.replace(marker, helper + marker)
     p.write_text(t, encoding="utf-8")
 
 # Cross-thread stop flag is written by the UI thread and read by HandlerThread.
+# The pre-Android-12 branch intentionally uses the old Criteria integer contract; newer
+# SDK annotations describe the ProviderProperties contract even for this overload, so
+# suppress only that known lint mismatch on provider creation.
 loc_thread = APP / "src/main/java/com/github/fakegps/LocationThread.java"
 lt = loc_thread.read_text(encoding="utf-8")
+if "import android.annotation.SuppressLint;" not in lt:
+    lt = lt.replace("package com.github.fakegps;\n\n", "package com.github.fakegps;\n\nimport android.annotation.SuppressLint;\n")
 lt = lt.replace("    private boolean stopping;", "    private volatile boolean stopping;")
 lt = lt.replace("    private final Context context;\n", "")
 lt = lt.replace("        this.context = context.getApplicationContext();\n", "")
+lt = lt.replace("    private boolean addLocalProviders() {\n", "    @SuppressLint(\"WrongConstant\")\n    private boolean addLocalProviders() {\n")
 loc_thread.write_text(lt, encoding="utf-8")
 
 # A non-sticky service does not need to override stopService(). Manager.stop() changes
@@ -92,6 +124,18 @@ if "protected void onConfigurationChanged(Configuration newConfig)" not in jt:
     if marker not in jt:
         raise SystemExit("Could not add JoyStickView configuration handling")
     jt = jt.replace(marker, insertion + marker)
+# Accessibility services can invoke performClick directly; panel dragging itself has no
+# click action, but forwarding it is still the correct custom-view contract.
+if "public boolean performClick()" not in jt:
+    marker = "    private void clamp() {\n"
+    click = '''    @Override
+    public boolean performClick() {
+        super.performClick();
+        return true;
+    }
+
+'''
+    jt = jt.replace(marker, click + marker)
 joy.write_text(jt, encoding="utf-8")
 
 # Preserve an in-progress start request if Android recreates MainActivity while returning
@@ -145,5 +189,74 @@ if "protected void onResume()" not in ft:
         raise SystemExit("Could not add FlyToActivity onResume refresh")
     ft = ft.replace(marker, resume + marker)
 fly.write_text(ft, encoding="utf-8")
+
+# AppCompat menu namespace is required when AppCompat owns the action bar.
+menu = APP / "src/main/res/menu/main_menu.xml"
+menu.write_text('''<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/menu_mock_status"
+        android:title="Mock status tester"
+        app:showAsAction="never" />
+</menu>
+''', encoding="utf-8")
+
+# Legacy D-pad resource is no longer used by the analog UI, but the class still compiles
+# as part of the source tree. Keep it correct for AppCompat and accessibility instead of
+# suppressing or deleting a class that old layouts may still reference.
+button = APP / "src/main/java/com/github/fakegps/ui/JoyStickButton.java"
+button.write_text(r'''package com.github.fakegps.ui;
+
+import android.content.Context;
+import android.util.AttributeSet;
+import android.view.MotionEvent;
+
+import androidx.appcompat.widget.AppCompatImageButton;
+
+import tiger.radio.loggerlibrary.Logger;
+
+public class JoyStickButton extends AppCompatImageButton {
+    private static final String TAG = "JoyStickButton";
+    private boolean pressDown;
+
+    public JoyStickButton(Context context) { super(context); }
+    public JoyStickButton(Context context, AttributeSet attrs) { super(context, attrs); }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                pressDown = true;
+                postDelayed(longPressRunnable, 1000L);
+                break;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                removeCallbacks(longPressRunnable);
+                pressDown = false;
+                break;
+            default:
+                break;
+        }
+        return super.onTouchEvent(event);
+    }
+
+    @Override
+    public boolean performClick() {
+        super.performClick();
+        return true;
+    }
+
+    private final Runnable longPressRunnable = new Runnable() {
+        @Override public void run() {
+            if (pressDown) {
+                Logger.d(TAG, "invoke click");
+                performClick();
+                postDelayed(this, 500L);
+            }
+        }
+    };
+}
+''', encoding="utf-8")
 
 print("GeoAvil alpha6 strict-quality fixes applied")
