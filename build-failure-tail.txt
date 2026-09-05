@@ -1,243 +1,292 @@
 === compiler/error matches ===
+139:Lint found 9 errors, 93 warnings. First failure:
+149:FAILURE: Build failed with an exception.
+151:* What went wrong:
+152:Execution failed for task ':app:lintRelease'.
+153:> Lint found errors in the project; aborting build.
+166:  Lint found 9 errors, 93 warnings. First failure:
+181:org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:lintRelease'.
+213:Caused by: java.lang.RuntimeException: Lint found errors in the project; aborting build.
+226:Lint found 9 errors, 93 warnings. First failure:
 
-=== final 240 lines ===
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/f1ff5347494d82c4424d24a6a997a908/transformed/customview-1.1.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/5048e3ca420149100a9bc98ae4e73a5f/transformed/core-1.13.1-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/ce982c54bfe4c5cef4f9279e06d4d934/transformed/localbroadcastmanager-1.1.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/e6bfe3b0808cc276856ac3fd638a646b/transformed/jetified-provider-13.1.5-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/677031bab4ac47ac6f1848a82c567018/transformed/jetified-api-13.1.5-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/9abf7474ff0a2b075c603fed8b129dd5/transformed/cursoradapter-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/0944cbd39bc179a494c218846c745768/transformed/jetified-profileinstaller-1.3.1-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/ace569aee10ae4dbacc2964ffb838bc4/transformed/jetified-resourceinspection-annotation-1.0.1 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/e3bb3d29cce20a0116e1df534d7bccf4/transformed/interpolator-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/8881967069fd4f2a31ffca3262e4d89f/transformed/versionedparcelable-1.1.1-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/891716d35e65b6dccd02731f73ee958b/transformed/cardview-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/87ce4cc6e1f51ea0739ed56e31c6d0f0/transformed/jetified-shared-13.1.5-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/71aba0341572713ecff7975950271875/transformed/collection-1.1.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/513a9c33546c5c03aded82c0847a9aa4/transformed/jetified-concurrent-futures-1.1.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/4e77c77710a404ad90e9de0667eab11c/transformed/jetified-startup-runtime-1.1.1-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/b02b9e7202f7eae92dcd606876795dcd/transformed/core-runtime-2.2.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/7568882650653a7ade4897364f61d620/transformed/core-common-2.2.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/842986251eba5028e5c9dc6f17ef0262/transformed/jetified-tracing-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/0e7555b5ff685cfb6a4bf2c83ad787b7/transformed/documentfile-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/705c2e19189cbf960ea1fa4bc0c1ace2/transformed/jetified-annotation-experimental-1.4.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/eac14060ed02578e9cb05ffecaca5dd0/transformed/print-1.0.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/6f913947eb2d2b6cf2cd6c610d318d6c/transformed/jetified-annotation-jvm-1.6.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/87f7116bc09b4739530e2ea546a728d3/transformed/jetified-kotlinx-coroutines-core-jvm-1.6.4 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3256a10fd62dd6bd6c2d5ef2f9ffdc2e/transformed/jetified-kotlinx-coroutines-android-1.6.4 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/e5b94f9c3e0e8b86361e581537cd52c8/transformed/jetified-kotlin-stdlib-jdk8-1.8.22 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3ab4f96847a73395cbe16793c0b02a3f/transformed/jetified-kotlin-stdlib-jdk7-1.8.22 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/9d6649f3710cda1cc1a8439067353a29/transformed/jetified-kotlin-stdlib-1.8.22 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/5badd0837f5ec006b5d4813dd190b9ac/transformed/jetified-error_prone_annotations-2.15.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/f3b74f226c0f5c702660ed2f5e70a53a/transformed/jetified-aidl-13.1.5-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/37bde3ffb2778b170e856d86c7393b98/transformed/jetified-listenablefuture-1.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/59f839a76105fbe37f98695532ab478f/transformed/jetified-kotlin-stdlib-common-1.8.22 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/615e63413416288b63f277a53d4c7520/transformed/jetified-annotations-13.0 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/c5d652573441e20919d1b07756266c10/transformed/constraintlayout-solver-2.0.1 because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/3f712c2092ef0ffab2fb5a13a99a9799/transformed/constraintlayout-2.0.1-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for DexingOutputSplitTransform: /home/runner/.gradle/caches/8.11.1/transforms/0da2a33cc51047fd9d1ec81f607cf2c8/transformed/jetified-appcompat-resources-1.7.0-runtime because:
-  Build cache is disabled
-  Caching not enabled.
-Caching disabled for task ':app:mergeReleaseGlobalSynthetics' because:
-  Build cache is disabled
-Task ':app:mergeReleaseGlobalSynthetics' is not up-to-date because:
-  No history is available.
-
+=== final 280 lines ===
+> Task :loggerlibrary:generateReleaseAssets UP-TO-DATE
+> Task :loggerlibrary:packageReleaseAssets
+> Task :loggerlibrary:prepareReleaseArtProfile
+> Task :loggerlibrary:writeReleaseLintModelMetadata
+> Task :loggerlibrary:preReleaseUnitTestBuild UP-TO-DATE
+> Task :loggerlibrary:mergeReleaseJavaResource
+> Task :app:generateReleaseLintVitalReportModel
+> Task :loggerlibrary:syncReleaseLibJars
+> Task :loggerlibrary:bundleReleaseLocalLintAar
+> Task :loggerlibrary:generateReleaseUnitTestLintModel
+> Task :app:generateReleaseUnitTestLintModel
+> Task :loggerlibrary:generateReleaseLintVitalModel
+> Task :app:mergeReleaseJniLibFolders
+> Task :loggerlibrary:copyReleaseJniLibsProjectOnly
+> Task :app:mergeReleaseNativeLibs NO-SOURCE
+> Task :app:stripReleaseDebugSymbols NO-SOURCE
+> Task :app:extractReleaseNativeSymbolTables NO-SOURCE
+> Task :app:mergeReleaseNativeDebugMetadata NO-SOURCE
+> Task :loggerlibrary:bundleLibRuntimeToDirRelease
+> Task :app:checkReleaseDuplicateClasses
+> Task :app:dexBuilderRelease
+> Task :app:desugarReleaseFileDependencies
+> Task :app:mergeReleaseStartupProfile
+> Task :loggerlibrary:lintAnalyzeReleaseUnitTest
+> Task :app:lintAnalyzeReleaseUnitTest
+> Task :loggerlibrary:lintAnalyzeRelease
+> Task :loggerlibrary:lintVitalAnalyzeRelease
+> Task :app:mergeReleaseArtProfile
 > Task :app:mergeExtDexRelease
-Merging to '/home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/external_libs_dex/release/mergeExtDexRelease' with D8 from all or a subset of dex files in /home/runner/.gradle/caches/8.11.1/transforms/d10bfbc381b0c716ca0478e605d56484/transformed/material-1.12.0-runtime/material-1.12.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/0da2a33cc51047fd9d1ec81f607cf2c8/transformed/jetified-appcompat-resources-1.7.0-runtime/jetified-appcompat-resources-1.7.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/3f712c2092ef0ffab2fb5a13a99a9799/transformed/constraintlayout-2.0.1-runtime/constraintlayout-2.0.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/a645acad5acc992572dc1b8659d34ff3/transformed/appcompat-1.7.0-runtime/appcompat-1.7.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/9a8a713fa8e5e538ecd076bdcebadfa1/transformed/jetified-emoji2-views-helper-1.3.0-runtime/jetified-emoji2-views-helper-1.3.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/34e06fa8173934d02d455267fc34eb28/transformed/jetified-emoji2-1.3.0-runtime/jetified-emoji2-1.3.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/6dda86d5412269d4283ee2dd50050b90/transformed/jetified-viewpager2-1.0.0-runtime/jetified-viewpager2-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/d586f6ff357f1ec33c9675a532ac4e97/transformed/fragment-1.5.4-runtime/fragment-1.5.4-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/8178024f5500f8d452419799e9fafeed/transformed/jetified-activity-1.8.0-runtime/jetified-activity-1.8.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/c97aca6e3447fd94db49249827213004/transformed/jetified-savedstate-1.2.1-runtime/jetified-savedstate-1.2.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/acd7a712fa78b8e33cc52d06139e8bb4/transformed/transition-1.5.0-runtime/transition-1.5.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/cdec057954487fa1d7d4639e3d2f1506/transformed/dynamicanimation-1.0.0-runtime/dynamicanimation-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/144e259b5408db7dc5b51ee832cf92a3/transformed/legacy-support-core-utils-1.0.0-runtime/legacy-support-core-utils-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/91f2a193423c9727d2a346504be7f619/transformed/loader-1.0.0-runtime/loader-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/79363f520add111c5b2658c7c021e933/transformed/lifecycle-livedata-2.6.2-runtime/lifecycle-livedata-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/80fafdf52a012cf24fefd959972f7769/transformed/lifecycle-viewmodel-2.6.2-runtime/lifecycle-viewmodel-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/14525ed61e81fe11a99e307593753c55/transformed/jetified-lifecycle-process-2.6.2-runtime/jetified-lifecycle-process-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/bddfa11c7edea53ad322b491ea4b3d42/transformed/lifecycle-livedata-core-2.6.2-runtime/lifecycle-livedata-core-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/10a18cb03f76a9146a5d9e2a975af2e4/transformed/lifecycle-common-2.6.2/lifecycle-common-2.6.2_dex, /home/runner/.gradle/caches/8.11.1/transforms/2a8e8ae579e3772f595616791ef1dfbe/transformed/lifecycle-runtime-2.6.2-runtime/lifecycle-runtime-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/742dd38d6fefdadb9aeb6db8c917c518/transformed/jetified-lifecycle-viewmodel-savedstate-2.6.2-runtime/jetified-lifecycle-viewmodel-savedstate-2.6.2-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/e6b5566a14f88976deb8db3360ccf9f0/transformed/jetified-core-ktx-1.13.1-runtime/jetified-core-ktx-1.13.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/ada34cf1fa78afcdafc70004607c7f44/transformed/drawerlayout-1.1.1-runtime/drawerlayout-1.1.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/a094e1ba9bf33203e101f0fe8b442c16/transformed/coordinatorlayout-1.1.0-runtime/coordinatorlayout-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/047eb92a0fae3e558298d61a484ced15/transformed/vectordrawable-animated-1.1.0-runtime/vectordrawable-animated-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/67ffa3bc002fad66ec04572b8370fd62/transformed/vectordrawable-1.1.0-runtime/vectordrawable-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/3d1c2ca91528b53c69b46f430fa661ac/transformed/viewpager-1.0.0-runtime/viewpager-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/ea3753995d67f4e477f9d4f3ac05b5e2/transformed/recyclerview-1.1.0-runtime/recyclerview-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/f1ff5347494d82c4424d24a6a997a908/transformed/customview-1.1.0-runtime/customview-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/5048e3ca420149100a9bc98ae4e73a5f/transformed/core-1.13.1-runtime/core-1.13.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/ce982c54bfe4c5cef4f9279e06d4d934/transformed/localbroadcastmanager-1.1.0-runtime/localbroadcastmanager-1.1.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/e6bfe3b0808cc276856ac3fd638a646b/transformed/jetified-provider-13.1.5-runtime/jetified-provider-13.1.5-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/677031bab4ac47ac6f1848a82c567018/transformed/jetified-api-13.1.5-runtime/jetified-api-13.1.5-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/9abf7474ff0a2b075c603fed8b129dd5/transformed/cursoradapter-1.0.0-runtime/cursoradapter-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/0944cbd39bc179a494c218846c745768/transformed/jetified-profileinstaller-1.3.1-runtime/jetified-profileinstaller-1.3.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/ace569aee10ae4dbacc2964ffb838bc4/transformed/jetified-resourceinspection-annotation-1.0.1/jetified-resourceinspection-annotation-1.0.1_dex, /home/runner/.gradle/caches/8.11.1/transforms/e3bb3d29cce20a0116e1df534d7bccf4/transformed/interpolator-1.0.0-runtime/interpolator-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/8881967069fd4f2a31ffca3262e4d89f/transformed/versionedparcelable-1.1.1-runtime/versionedparcelable-1.1.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/891716d35e65b6dccd02731f73ee958b/transformed/cardview-1.0.0-runtime/cardview-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/87ce4cc6e1f51ea0739ed56e31c6d0f0/transformed/jetified-shared-13.1.5-runtime/jetified-shared-13.1.5-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/71aba0341572713ecff7975950271875/transformed/collection-1.1.0/collection-1.1.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/513a9c33546c5c03aded82c0847a9aa4/transformed/jetified-concurrent-futures-1.1.0/jetified-concurrent-futures-1.1.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/4e77c77710a404ad90e9de0667eab11c/transformed/jetified-startup-runtime-1.1.1-runtime/jetified-startup-runtime-1.1.1-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/b02b9e7202f7eae92dcd606876795dcd/transformed/core-runtime-2.2.0-runtime/core-runtime-2.2.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/7568882650653a7ade4897364f61d620/transformed/core-common-2.2.0/core-common-2.2.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/842986251eba5028e5c9dc6f17ef0262/transformed/jetified-tracing-1.0.0-runtime/jetified-tracing-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/0e7555b5ff685cfb6a4bf2c83ad787b7/transformed/documentfile-1.0.0-runtime/documentfile-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/eac14060ed02578e9cb05ffecaca5dd0/transformed/print-1.0.0-runtime/print-1.0.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/705c2e19189cbf960ea1fa4bc0c1ace2/transformed/jetified-annotation-experimental-1.4.0-runtime/jetified-annotation-experimental-1.4.0-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/6f913947eb2d2b6cf2cd6c610d318d6c/transformed/jetified-annotation-jvm-1.6.0/jetified-annotation-jvm-1.6.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/87f7116bc09b4739530e2ea546a728d3/transformed/jetified-kotlinx-coroutines-core-jvm-1.6.4/jetified-kotlinx-coroutines-core-jvm-1.6.4_dex, /home/runner/.gradle/caches/8.11.1/transforms/3256a10fd62dd6bd6c2d5ef2f9ffdc2e/transformed/jetified-kotlinx-coroutines-android-1.6.4/jetified-kotlinx-coroutines-android-1.6.4_dex, /home/runner/.gradle/caches/8.11.1/transforms/9d6649f3710cda1cc1a8439067353a29/transformed/jetified-kotlin-stdlib-1.8.22/jetified-kotlin-stdlib-1.8.22_dex, /home/runner/.gradle/caches/8.11.1/transforms/5badd0837f5ec006b5d4813dd190b9ac/transformed/jetified-error_prone_annotations-2.15.0/jetified-error_prone_annotations-2.15.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/f3b74f226c0f5c702660ed2f5e70a53a/transformed/jetified-aidl-13.1.5-runtime/jetified-aidl-13.1.5-runtime_dex, /home/runner/.gradle/caches/8.11.1/transforms/37bde3ffb2778b170e856d86c7393b98/transformed/jetified-listenablefuture-1.0/jetified-listenablefuture-1.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/615e63413416288b63f277a53d4c7520/transformed/jetified-annotations-13.0/jetified-annotations-13.0_dex, /home/runner/.gradle/caches/8.11.1/transforms/c5d652573441e20919d1b07756266c10/transformed/constraintlayout-solver-2.0.1/constraintlayout-solver-2.0.1_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/external_file_lib_dex_archives/release/desugarReleaseFileDependencies/0_jetified-lite-orm-1.9.2.jar, and from all global synthetics files in 
-Resolve mutations for :app:mergeDexRelease (Thread[Execution worker Thread 2,5,main]) started.
-:app:mergeDexRelease (Thread[Execution worker Thread 3,5,main]) started.
-
-> Task :app:lintVitalAnalyzeRelease
-Transforming FakeDependency.jar with D8BackportedMethodsGenerator
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Transforming lite-orm-1.9.2.jar with JetifyTransform
-Transforming lite-orm-1.9.2.jar with JetifyTransform
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Transforming FakeDependency.jar with D8BackportedMethodsGenerator
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Transforming lite-orm-1.9.2.jar with JetifyTransform
-Transforming lite-orm-1.9.2.jar with JetifyTransform
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Caching disabled for task ':app:lintVitalAnalyzeRelease' because:
-  Build cache is disabled
-Task ':app:lintVitalAnalyzeRelease' is not up-to-date because:
-  No history is available.
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Android Lint: Reusing lint classloader 31.7.3_false
-
+> Task :app:mergeReleaseGlobalSynthetics
+> Task :app:mergeReleaseShaders
+> Task :app:compileReleaseShaders NO-SOURCE
+> Task :app:generateReleaseAssets UP-TO-DATE
+> Task :app:mergeReleaseAssets
+> Task :app:compressReleaseAssets
+> Task :app:extractReleaseVersionControlInfo
 > Task :app:mergeDexRelease
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Caching disabled for task ':app:mergeDexRelease' because:
-  Build cache is disabled
-Task ':app:mergeDexRelease' is not up-to-date because:
-  No history is available.
-The input changes require a full rebuild for incremental task ':app:mergeDexRelease'.
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Merging to '/home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/dex/release/mergeDexRelease' with D8 from all or a subset of dex files in /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/build/.transforms/b2141099bca148dae036ec3c478c2e1c/transformed/bundleLibRuntimeToDirRelease/bundleLibRuntimeToDirRelease_dex, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/external_libs_dex/release/mergeExtDexRelease, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out/3d6712745483792724a27ce0f8eee614cbf26d48c3b44d8727e36e25eb3121f3_0.jar, /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/project_dex_archive/release/dexBuilderRelease/out/3d6712745483792724a27ce0f8eee614cbf26d48c3b44d8727e36e25eb3121f3_1.jar, and from all global synthetics files in 
-Resolve mutations for :app:compileReleaseArtProfile (Thread[Execution worker Thread 2,5,main]) started.
-:app:compileReleaseArtProfile (Thread[Execution worker Thread 2,5,main]) started.
-
+> Task :app:lintVitalAnalyzeRelease
+> Task :app:lintVitalReportRelease SKIPPED
+> Task :app:lintVitalRelease SKIPPED
 > Task :app:compileReleaseArtProfile
-Caching disabled for task ':app:compileReleaseArtProfile' because:
-  Build cache is disabled
-Task ':app:compileReleaseArtProfile' is not up-to-date because:
-  No history is available.
-Resolve mutations for :app:packageRelease (Thread[Execution worker Thread 2,5,main]) started.
-:app:packageRelease (Thread[Execution worker Thread 2,5,main]) started.
-
+> Task :app:mergeReleaseJavaResource
+> Task :app:collectReleaseDependencies
+> Task :app:optimizeReleaseResources
+> Task :app:sdkReleaseDependencyData
+> Task :app:validateSigningRelease
+> Task :app:writeReleaseAppMetadata
+> Task :app:writeReleaseSigningConfigVersions
 > Task :app:packageRelease
-Custom actions are attached to task ':app:packageRelease'.
-Caching disabled for task ':app:packageRelease' because:
-  Build cache is disabled
-  Caching has been disabled for the task
-Task ':app:packageRelease' is not up-to-date because:
-  No history is available.
-The input changes require a full rebuild for incremental task ':app:packageRelease'.
-Resolve mutations for :app:createReleaseApkListingFileRedirect (Thread[Execution worker Thread 2,5,main]) started.
-:app:createReleaseApkListingFileRedirect (Thread[Execution worker Thread 2,5,main]) started.
-
 > Task :app:createReleaseApkListingFileRedirect
-Caching disabled for task ':app:createReleaseApkListingFileRedirect' because:
-  Build cache is disabled
-  Caching has been disabled for the task
-Task ':app:createReleaseApkListingFileRedirect' is not up-to-date because:
-  No history is available.
-Resolve mutations for :app:lintVitalReportRelease (Thread[included builds,5,main]) started.
-:app:lintVitalReportRelease (Thread[included builds,5,main]) started.
-
-> Task :app:lintVitalReportRelease
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-file or directory '/home/runner/work/GeoVeil/GeoVeil/geoavil/loggerlibrary/libs', not found
-Caching disabled for task ':app:lintVitalReportRelease' because:
-  Build cache is disabled
-  Caching has been disabled for the task
-Task ':app:lintVitalReportRelease' is not up-to-date because:
-  No history is available.
-Android Lint: Reusing lint classloader 31.7.3_false
-Resolve mutations for :app:lintVitalRelease (Thread[included builds,5,main]) started.
-:app:lintVitalRelease (Thread[included builds,5,main]) started.
-
-> Task :app:lintVitalRelease
-Caching disabled for task ':app:lintVitalRelease' because:
-  Build cache is disabled
-Task ':app:lintVitalRelease' is not up-to-date because:
-  Task has not declared any outputs despite executing actions.
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:32: Error: Reflective access to size is forbidden when targeting API 34 and above [BlockedPrivateApi]
-            final Method size = locationResult.getDeclaredMethod("size");
-                                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:33: Error: Reflective access to get is forbidden when targeting API 34 and above [BlockedPrivateApi]
-            final Method get = locationResult.getDeclaredMethod("get", int.class);
-                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-   Explanation for issues of type "BlockedPrivateApi":
-   Usage of restricted non-SDK interface is forbidden for this targetSDK.
-   Accessing non-SDK methods or fields through reflection has a high
-   likelihood to break your app between versions, and is being restricted to
-   facilitate future app compatibility.
-
-   https://developer.android.com/preview/restrictions-non-sdk-interfaces
-
-2 errors, 0 warnings
-
-Resolve mutations for :app:assembleRelease (Thread[included builds,5,main]) started.
-:app:assembleRelease (Thread[included builds,5,main]) started.
-
 > Task :app:assembleRelease
-Skipping task ':app:assembleRelease' as it has no actions.
-AAPT2 aapt2-8.7.3-12006047-linux Daemon #0: shutdown
-AAPT2 aapt2-8.7.3-12006047-linux Daemon #1: shutdown
-Android Lint: Disposing Uast application environment in lint classloader [31.7.3_false]
+> Task :app:lintAnalyzeRelease
+
+> Task :app:lintReportRelease
+Wrote HTML report to file:///home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/reports/lint-results-release.html
+
+> Task :app:lintRelease FAILED
+Lint found 9 errors, 93 warnings. First failure:
+
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
+            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
+                 ~~~~~~~~~~~~~~
+
+The full lint text report is located at:
+  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
 [Incubating] Problems report is available at: file:///home/runner/work/GeoVeil/GeoVeil/geoavil/build/reports/problems/problems-report.html
 
-BUILD SUCCESSFUL in 1m 38s
-79 actionable tasks: 79 executed
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:lintRelease'.
+> Lint found errors in the project; aborting build.
+  
+  Fix the issues identified by lint, or create a baseline to see only new errors.
+  To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+  ```
+  android {
+      lint {
+          baseline = file("lint-baseline.xml")
+      }
+  }
+  ```
+  For more details, see https://developer.android.com/studio/write/lint#snapshot
+  
+  Lint found 9 errors, 93 warnings. First failure:
+  
+  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
+              hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
+                   ~~~~~~~~~~~~~~
+  
+  The full lint text report is located at:
+    /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
+
+* Try:
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+* Exception is:
+org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:lintRelease'.
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.lambda$executeIfValid$1(ExecuteActionsTaskExecuter.java:130)
+	at org.gradle.internal.Try$Failure.ifSuccessfulOrElse(Try.java:293)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:128)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+Caused by: java.lang.RuntimeException: Lint found errors in the project; aborting build.
+
+Fix the issues identified by lint, or create a baseline to see only new errors.
+To create a baseline, run `gradlew updateLintBaseline` after adding the following to the module's build.gradle file:
+```
+android {
+    lint {
+        baseline = file("lint-baseline.xml")
+    }
+}
+```
+For more details, see https://developer.android.com/studio/write/lint#snapshot
+
+Lint found 9 errors, 93 warnings. First failure:
+
+/home/runner/work/GeoVeil/GeoVeil/geoavil/app/src/main/java/com/github/fakegps/xposed/GeoAvilSystemModule.java:47: Error: Implicit cast from Method to Executable requires API level 26 (current min is 24) [NewApi]
+            hook(reportLocation).setExceptionMode(ExceptionMode.PROTECTIVE).intercept(chain -> {
+                 ~~~~~~~~~~~~~~
+
+The full lint text report is located at:
+  /home/runner/work/GeoVeil/GeoVeil/geoavil/app/build/intermediates/lint_intermediate_text_report/release/lintReportRelease/lint-results-release.txt
+	at com.android.build.gradle.internal.lint.AndroidLintWorkAction$Companion.maybeThrowException(AndroidLintWorkAction.kt:235)
+	at com.android.build.gradle.internal.lint.AndroidLintTextOutputTask.doTaskAction(AndroidLintTextOutputTask.kt:109)
+	at com.android.build.gradle.internal.tasks.NonIncrementalTask$taskAction$$inlined$recordTaskAction$1.invoke(BaseTask.kt:79)
+	at com.android.build.gradle.internal.tasks.Blocks.recordSpan(Blocks.java:51)
+	at com.android.build.gradle.internal.tasks.NonIncrementalTask.taskAction(NonIncrementalTask.kt:78)
+	at jdk.internal.reflect.GeneratedMethodAccessor74.invoke(Unknown Source)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at org.gradle.internal.reflect.JavaMethod.invoke(JavaMethod.java:125)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.doExecute(StandardTaskAction.java:58)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:51)
+	at org.gradle.api.internal.project.taskfactory.StandardTaskAction.execute(StandardTaskAction.java:29)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$3.run(TaskExecution.java:244)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:29)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$1.execute(DefaultBuildOperationRunner.java:26)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.run(DefaultBuildOperationRunner.java:47)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeAction(TaskExecution.java:229)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeActions(TaskExecution.java:212)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.executeWithPreviousOutputFiles(TaskExecution.java:195)
+	at org.gradle.api.internal.tasks.execution.TaskExecution.execute(TaskExecution.java:162)
+	at org.gradle.internal.execution.steps.ExecuteStep.executeInternal(ExecuteStep.java:105)
+	at org.gradle.internal.execution.steps.ExecuteStep.access$000(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:59)
+	at org.gradle.internal.execution.steps.ExecuteStep$1.call(ExecuteStep.java:56)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:56)
+	at org.gradle.internal.execution.steps.ExecuteStep.execute(ExecuteStep.java:44)
+	at org.gradle.internal.execution.steps.CancelExecutionStep.execute(CancelExecutionStep.java:42)
+	at org.gradle.internal.execution.steps.TimeoutStep.executeWithoutTimeout(TimeoutStep.java:75)
+	at org.gradle.internal.execution.steps.TimeoutStep.execute(TimeoutStep.java:55)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:50)
+	at org.gradle.internal.execution.steps.PreCreateOutputParentsStep.execute(PreCreateOutputParentsStep.java:28)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:67)
+	at org.gradle.internal.execution.steps.RemovePreviousOutputsStep.execute(RemovePreviousOutputsStep.java:37)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:61)
+	at org.gradle.internal.execution.steps.BroadcastChangingOutputsStep.execute(BroadcastChangingOutputsStep.java:26)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:69)
+	at org.gradle.internal.execution.steps.CaptureOutputsAfterExecutionStep.execute(CaptureOutputsAfterExecutionStep.java:46)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:40)
+	at org.gradle.internal.execution.steps.ResolveInputChangesStep.execute(ResolveInputChangesStep.java:29)
+	at org.gradle.internal.execution.steps.BuildCacheStep.executeWithoutCache(BuildCacheStep.java:189)
+	at org.gradle.internal.execution.steps.BuildCacheStep.lambda$execute$1(BuildCacheStep.java:75)
+	at org.gradle.internal.Either$Right.fold(Either.java:175)
+	at org.gradle.internal.execution.caching.CachingState.fold(CachingState.java:62)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:73)
+	at org.gradle.internal.execution.steps.BuildCacheStep.execute(BuildCacheStep.java:48)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:46)
+	at org.gradle.internal.execution.steps.StoreExecutionStateStep.execute(StoreExecutionStateStep.java:35)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.executeBecause(SkipUpToDateStep.java:75)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.lambda$execute$2(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:53)
+	at org.gradle.internal.execution.steps.SkipUpToDateStep.execute(SkipUpToDateStep.java:35)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:37)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsFinishedStep.execute(MarkSnapshottingInputsFinishedStep.java:27)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:49)
+	at org.gradle.internal.execution.steps.ResolveIncrementalCachingStateStep.executeDelegate(ResolveIncrementalCachingStateStep.java:27)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:71)
+	at org.gradle.internal.execution.steps.AbstractResolveCachingStateStep.execute(AbstractResolveCachingStateStep.java:39)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:65)
+	at org.gradle.internal.execution.steps.ResolveChangesStep.execute(ResolveChangesStep.java:36)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:107)
+	at org.gradle.internal.execution.steps.ValidateStep.execute(ValidateStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:64)
+	at org.gradle.internal.execution.steps.AbstractCaptureStateBeforeExecutionStep.execute(AbstractCaptureStateBeforeExecutionStep.java:43)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.executeWithNonEmptySources(AbstractSkipEmptyWorkStep.java:125)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:56)
+	at org.gradle.internal.execution.steps.AbstractSkipEmptyWorkStep.execute(AbstractSkipEmptyWorkStep.java:36)
+	at org.gradle.internal.execution.steps.legacy.MarkSnapshottingInputsStartedStep.execute(MarkSnapshottingInputsStartedStep.java:38)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:36)
+	at org.gradle.internal.execution.steps.LoadPreviousExecutionStateStep.execute(LoadPreviousExecutionStateStep.java:23)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:75)
+	at org.gradle.internal.execution.steps.HandleStaleOutputsStep.execute(HandleStaleOutputsStep.java:41)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.lambda$execute$0(AssignMutableWorkspaceStep.java:35)
+	at org.gradle.api.internal.tasks.execution.TaskExecution$4.withWorkspace(TaskExecution.java:289)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:31)
+	at org.gradle.internal.execution.steps.AssignMutableWorkspaceStep.execute(AssignMutableWorkspaceStep.java:22)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:40)
+	at org.gradle.internal.execution.steps.ChoosePipelineStep.execute(ChoosePipelineStep.java:23)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.lambda$execute$2(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:67)
+	at org.gradle.internal.execution.steps.ExecuteWorkBuildOperationFiringStep.execute(ExecuteWorkBuildOperationFiringStep.java:39)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:46)
+	at org.gradle.internal.execution.steps.IdentityCacheStep.execute(IdentityCacheStep.java:34)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:48)
+	at org.gradle.internal.execution.steps.IdentifyStep.execute(IdentifyStep.java:35)
+	at org.gradle.internal.execution.impl.DefaultExecutionEngine$1.execute(DefaultExecutionEngine.java:61)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.executeIfValid(ExecuteActionsTaskExecuter.java:127)
+	at org.gradle.api.internal.tasks.execution.ExecuteActionsTaskExecuter.execute(ExecuteActionsTaskExecuter.java:116)
+	at org.gradle.api.internal.tasks.execution.FinalizePropertiesTaskExecuter.execute(FinalizePropertiesTaskExecuter.java:46)
+	at org.gradle.api.internal.tasks.execution.ResolveTaskExecutionModeExecuter.execute(ResolveTaskExecutionModeExecuter.java:51)
+	at org.gradle.api.internal.tasks.execution.SkipTaskWithNoActionsExecuter.execute(SkipTaskWithNoActionsExecuter.java:57)
+	at org.gradle.api.internal.tasks.execution.SkipOnlyIfTaskExecuter.execute(SkipOnlyIfTaskExecuter.java:74)
+	at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.executeTask(EventFiringTaskExecuter.java:77)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:55)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter$1.call(EventFiringTaskExecuter.java:52)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:209)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$CallableBuildOperationWorker.execute(DefaultBuildOperationRunner.java:204)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:66)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner$2.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:166)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.execute(DefaultBuildOperationRunner.java:59)
+	at org.gradle.internal.operations.DefaultBuildOperationRunner.call(DefaultBuildOperationRunner.java:53)
+	at org.gradle.api.internal.tasks.execution.EventFiringTaskExecuter.execute(EventFiringTaskExecuter.java:52)
+	at org.gradle.execution.plan.LocalTaskNodeExecutor.execute(LocalTaskNodeExecutor.java:42)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:331)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$InvokeNodeExecutorsAction.execute(DefaultTaskExecutionGraph.java:318)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.lambda$execute$0(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.internal.operations.CurrentBuildOperationRef.with(CurrentBuildOperationRef.java:85)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:314)
+	at org.gradle.execution.taskgraph.DefaultTaskExecutionGraph$BuildOperationAwareExecutionAction.execute(DefaultTaskExecutionGraph.java:303)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.execute(DefaultPlanExecutor.java:459)
+	at org.gradle.execution.plan.DefaultPlanExecutor$ExecutorWorker.run(DefaultPlanExecutor.java:376)
+	at org.gradle.internal.concurrent.ExecutorPolicy$CatchAndRecordFailures.onExecute(ExecutorPolicy.java:64)
+	at org.gradle.internal.concurrent.AbstractManagedExecutor$1.run(AbstractManagedExecutor.java:48)
+
+
+BUILD FAILED in 1m 22s
+91 actionable tasks: 91 executed
